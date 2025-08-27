@@ -14,7 +14,7 @@ spring:
   config:
     import: optional:file:.env[.properties]
   profiles:
-    active: prod
+    active: dev
   jpa:
     show-sql: true
     hibernate:
