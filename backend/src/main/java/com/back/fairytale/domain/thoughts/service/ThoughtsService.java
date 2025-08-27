@@ -45,8 +45,8 @@ public class ThoughtsService {
         // 유저와 동화조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Id가 " + userId + "인 유저를 찾을 수 없습니다."));
-        Fairytale fairytale = fairytaleRepository.findById(request.fairytaleId())
-                .orElseThrow(() -> new RuntimeException("Id가 " + request.fairytaleId() + "인 동화를 찾을 수 없습니다."));
+        Fairytale fairytale = fairytaleRepository.findById(request.fairytaleId)
+                .orElseThrow(() -> new RuntimeException("Id가 " + request.fairytaleId + "인 동화를 찾을 수 없습니다."));
 
         // 아이생각 생성
         Thoughts thoughts = Thoughts.of(fairytale, user, request);
@@ -74,7 +74,7 @@ public class ThoughtsService {
         Thoughts thoughts = findThoughtAndCheckUser(id, userId);
 
         // 아이생각 수정
-        thoughts.update(request.name(), request.content(), request.parentContent());
+        thoughts.update(request.name, request.content, request.parentContent);
 
         // 응답 생성
         return ThoughtsResponse.from(thoughts);

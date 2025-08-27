@@ -33,7 +33,7 @@ public class ThoughtsController {
         ThoughtsResponse response = thoughtsService.createThoughts(request, customOAuth2User.getId());
 
         // 새로 생성된 리소스의 URI를 생성
-        URI location = URI.create("/api/thoughts/" + response.id());
+        URI location = URI.create("/api/thoughts/" + response.id);
 
         // 201 Created 상태 코드와 Location 헤더, 응답 본문을 함께 반환
         return ResponseEntity.created(location).body(response);
