@@ -1,0 +1,32 @@
+gemini:
+  api:
+    key: ${GEMINI_API_KEY}
+    url: ${GEMINI_API_URL}
+
+huggingface:
+  api:
+    url: ${HUGGING_FACE_URL}
+    token: ${HUGGING_FACE_TOKEN}
+
+spring:
+  application:
+    name: backend
+  config:
+    import: optional:file:.env[.properties]
+  profiles:
+    active: prod
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+        use_sql_comments: true
+
+logging:
+  level:
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.hibernate.orm.jdbc.extract: TRACE
+    org.springframework.transaction.interceptor: TRACE
