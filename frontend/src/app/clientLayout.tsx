@@ -17,12 +17,15 @@ export default function ClientLayout({
   const [showLoginRequiredPopup, setShowLoginRequiredPopup] = useState(false); // 로그인 필요 팝업 상태
   const router = useRouter();
   const [loginError, setLoginError] = useState<string | null>(null);
+  const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   useEffect(() => {
     const checkInitialLogin = async () => {
       try {
         // 로그인 상태 확인 요청
-        const response = await customFetch("https://nbe6-8-2-team07.onrender.com/users/me");
+        const response = await customFetch(
+          `${NEXT_PUBLIC_API_BASE_URL}/users/me`
+        );
 
         if (response.ok) {
           setIsLoggedIn(true);
@@ -64,7 +67,7 @@ export default function ClientLayout({
   // 로그아웃 로직
   const handleLogout = async () => {
     try {
-      await customFetch("https://nbe6-8-2-team07.onrender.com/logout", {
+      await customFetch(`${NEXT_PUBLIC_API_BASE_URL}/logout`, {
         method: "POST",
         // @ts-expect-error - noRefresh option is not in RequestInit type but needed for logout
         noRefresh: true, // 로그아웃 시에는 토큰 재발급 시도 안 함
@@ -218,7 +221,7 @@ export default function ClientLayout({
 
               {/* 네이버 로그인 버튼 */}
               <Link
-                href="https://nbe6-8-2-team07.onrender.com/oauth2/authorization/naver"
+                href={`${NEXT_PUBLIC_API_BASE_URL}/oauth2/authorization/naver`}
                 onClick={handleLoginClick}
               >
                 <div className="hover:opacity-90 transition-opacity duration-200">
@@ -257,7 +260,10 @@ export default function ClientLayout({
         <p>Team07 | 키워드 기반 AI 동화 생성 서비스</p>
         <p>프로그래머스 데브코스 백엔드 6기 2차 프로젝트</p>
         <div className="flex justify-center gap-8 mt-3">
-          <Link href="/introduction" className="flex items-center gap-1 hover:underline hover:text-[#7a3000] transition">
+          <Link
+            href="/introduction"
+            className="flex items-center gap-1 hover:underline hover:text-[#7a3000] transition"
+          >
             <FiLink className="text-sm" />
             서비스 소개
           </Link>

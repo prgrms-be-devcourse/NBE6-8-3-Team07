@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { customFetch } from '@/utils/customFetch';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { customFetch } from "@/utils/customFetch";
 
 interface Fairytale {
   id: number;
@@ -33,26 +33,32 @@ export default function FairytaleGallery() {
   const [fairytales, setFairytales] = useState<Fairytale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [likedFairytales, setLikedFairytales] = useState<Set<number>>(new Set());
+  const [likedFairytales, setLikedFairytales] = useState<Set<number>>(
+    new Set()
+  );
   const [currentPage, setCurrentPage] = useState(0);
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
   const router = useRouter();
+  const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   useEffect(() => {
     fetchFairytales(currentPage);
   }, [currentPage]);
 
   useEffect(() => {
-    console.log('fetchLikedFairytales 호출됨');
+    console.log("fetchLikedFairytales 호출됨");
     fetchLikedFairytales();
   }, []);
 
   const fetchFairytales = async (page: number = 0) => {
     try {
       setIsLoading(true);
-      const response = await customFetch(`https://nbe6-8-2-team07.onrender.com/fairytales/gallery?page=${page}&size=6`, {
-        credentials: 'include'
-      });
+      const response = await customFetch(
+        `${NEXT_PUBLIC_API_BASE_URL}/fairytales/gallery?page=${page}&size=6`,
+        {
+          credentials: "include",
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -66,13 +72,13 @@ export default function FairytaleGallery() {
         totalElements: data.totalElements,
         totalPages: data.totalPages,
         currentPage: data.number,
-        size: data.size
+        size: data.size,
       });
       setError(null);
     } catch (err) {
-      console.error('Error fetching fairytales:', err);
+      console.error("Error fetching fairytales:", err);
       // 모든 에러에 대해 "아직 공개된 동화가 없습니다" 메시지 표시
-      setError('아직 공개된 동화가 없습니다.');
+      setError("아직 공개된 동화가 없습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -80,37 +86,42 @@ export default function FairytaleGallery() {
 
   const fetchLikedFairytales = async () => {
     try {
-      console.log('좋아요 목록 조회 시작');
-      const response = await customFetch('https://nbe6-8-2-team07.onrender.com/likes', {
-        credentials: 'include'
+      console.log("좋아요 목록 조회 시작");
+      const response = await customFetch(`${NEXT_PUBLIC_API_BASE_URL}/likes`, {
+        credentials: "include",
       });
 
-      console.log('좋아요 목록 응답:', response.status, response.statusText);
+      console.log("좋아요 목록 응답:", response.status, response.statusText);
 
       if (response.ok) {
         const likes = await response.json();
-        console.log('좋아요 목록 데이터:', likes);
-        const likedIds = new Set<number>(likes.map((like: { fairytaleId: number }) => Number(like.fairytaleId)));
+        console.log("좋아요 목록 데이터:", likes);
+        const likedIds = new Set<number>(
+          likes.map((like: { fairytaleId: number }) => Number(like.fairytaleId))
+        );
         setLikedFairytales(likedIds);
-        console.log('좋아요 ID 목록:', Array.from(likedIds));
+        console.log("좋아요 ID 목록:", Array.from(likedIds));
       }
     } catch (error) {
-      console.error('좋아요 목록 조회 실패:', error);
+      console.error("좋아요 목록 조회 실패:", error);
     }
   };
 
   const toggleLike = async (fairytaleId: number) => {
     try {
       const isCurrentlyLiked = likedFairytales.has(fairytaleId);
-      
-      const response = await customFetch(`https://nbe6-8-2-team07.onrender.com/like/${fairytaleId}`, {
-        method: isCurrentlyLiked ? 'DELETE' : 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
+
+      const response = await customFetch(
+        `${NEXT_PUBLIC_API_BASE_URL}/like/${fairytaleId}`,
+        {
+          method: isCurrentlyLiked ? "DELETE" : "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
         }
-      });
+      );
 
       if (response.ok) {
         const newLikedFairytales = new Set(likedFairytales);
@@ -120,14 +131,17 @@ export default function FairytaleGallery() {
           newLikedFairytales.add(fairytaleId);
         }
         setLikedFairytales(newLikedFairytales);
-
-
       } else {
         const errorText = await response.text();
-        console.error('좋아요 처리 실패:', response.status, response.statusText, errorText);
+        console.error(
+          "좋아요 처리 실패:",
+          response.status,
+          response.statusText,
+          errorText
+        );
       }
     } catch (error) {
-      console.error('좋아요 처리 중 오류:', error);
+      console.error("좋아요 처리 중 오류:", error);
     }
   };
 
@@ -141,10 +155,10 @@ export default function FairytaleGallery() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return date.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -153,8 +167,14 @@ export default function FairytaleGallery() {
 
     const pages = [];
     const maxVisiblePages = 5;
-    let startPage = Math.max(0, pageInfo.currentPage - Math.floor(maxVisiblePages / 2));
-    const endPage = Math.min(pageInfo.totalPages - 1, startPage + maxVisiblePages - 1);
+    let startPage = Math.max(
+      0,
+      pageInfo.currentPage - Math.floor(maxVisiblePages / 2)
+    );
+    const endPage = Math.min(
+      pageInfo.totalPages - 1,
+      startPage + maxVisiblePages - 1
+    );
 
     if (endPage - startPage + 1 < maxVisiblePages) {
       startPage = Math.max(0, endPage - maxVisiblePages + 1);
@@ -181,8 +201,8 @@ export default function FairytaleGallery() {
           onClick={() => handlePageChange(i)}
           className={`px-3 py-2 text-sm font-medium ${
             i === pageInfo.currentPage
-              ? 'text-orange-600 bg-orange-50 border-orange-300'
-              : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50'
+              ? "text-orange-600 bg-orange-50 border-orange-300"
+              : "text-gray-500 bg-white border-gray-300 hover:bg-gray-50"
           } border`}
         >
           {i + 1}
@@ -205,9 +225,7 @@ export default function FairytaleGallery() {
 
     return (
       <div className="flex justify-center mt-8">
-        <div className="flex space-x-0">
-          {pages}
-        </div>
+        <div className="flex space-x-0">{pages}</div>
       </div>
     );
   };
@@ -267,7 +285,9 @@ export default function FairytaleGallery() {
 
         <section className="max-w-5xl mx-auto px-6">
           <div className="flex justify-center items-center h-64">
-            <div className="text-2xl text-gray-600">📚 아직 등록된 동화가 없습니다.</div>
+            <div className="text-2xl text-gray-600">
+              📚 아직 등록된 동화가 없습니다.
+            </div>
           </div>
         </section>
       </main>
@@ -294,7 +314,8 @@ export default function FairytaleGallery() {
           </p>
           {pageInfo && (
             <p className="text-sm text-gray-500 mt-2">
-              총 {pageInfo.totalElements}개의 동화 중 {pageInfo.currentPage + 1}페이지
+              총 {pageInfo.totalElements}개의 동화 중 {pageInfo.currentPage + 1}
+              페이지
             </p>
           )}
         </div>
@@ -322,20 +343,24 @@ export default function FairytaleGallery() {
                   {/* 동화 내용 미리보기 */}
                   <div className="mb-4">
                     <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
-                      아이와 함께 만든 특별한 동화입니다. 
-                      자세한 내용을 보려면 카드를 클릭해주세요!
+                      아이와 함께 만든 특별한 동화입니다. 자세한 내용을 보려면
+                      카드를 클릭해주세요!
                     </p>
                   </div>
 
                   {/* 동적 데이터 표시 (백엔드에서 제공될 때) */}
-                  {(fairytale.characters || fairytale.place || fairytale.mood) && (
+                  {(fairytale.characters ||
+                    fairytale.place ||
+                    fairytale.mood) && (
                     <div className="space-y-3 mb-4">
                       {fairytale.characters && (
                         <div className="flex items-center space-x-2">
                           <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
                             👥 등장인물
                           </span>
-                          <span className="text-sm text-gray-700">{fairytale.characters}</span>
+                          <span className="text-sm text-gray-700">
+                            {fairytale.characters}
+                          </span>
                         </div>
                       )}
                       {fairytale.place && (
@@ -343,7 +368,9 @@ export default function FairytaleGallery() {
                           <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
                             🏰 장소
                           </span>
-                          <span className="text-sm text-gray-700">{fairytale.place}</span>
+                          <span className="text-sm text-gray-700">
+                            {fairytale.place}
+                          </span>
                         </div>
                       )}
                       {fairytale.mood && (
@@ -351,7 +378,9 @@ export default function FairytaleGallery() {
                           <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-medium">
                             ✨ 분위기
                           </span>
-                          <span className="text-sm text-gray-700">{fairytale.mood}</span>
+                          <span className="text-sm text-gray-700">
+                            {fairytale.mood}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -373,13 +402,17 @@ export default function FairytaleGallery() {
                         }}
                         className={`p-2 rounded-full transition-all duration-300 transform hover:scale-110 cursor-pointer ${
                           likedFairytales.has(fairytale.id)
-                            ? 'text-red-500 hover:text-red-600 bg-red-50'
-                            : 'text-gray-400 hover:text-red-500 hover:bg-red-50'
+                            ? "text-red-500 hover:text-red-600 bg-red-50"
+                            : "text-gray-400 hover:text-red-500 hover:bg-red-50"
                         }`}
                       >
                         <svg
                           className="w-6 h-6"
-                          fill={likedFairytales.has(fairytale.id) ? 'currentColor' : 'none'}
+                          fill={
+                            likedFairytales.has(fairytale.id)
+                              ? "currentColor"
+                              : "none"
+                          }
                           stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
