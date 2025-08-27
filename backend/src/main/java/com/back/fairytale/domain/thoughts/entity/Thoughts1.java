@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class Thoughts {
+public class Thoughts1 {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -66,8 +66,8 @@ public class Thoughts {
     }
 
     // Thoughts 생성
-    public static Thoughts of(Fairytale fairytale, User user, ThoughtsRequest request) {
-        return Thoughts.builder()
+    public static Thoughts1 of(Fairytale fairytale, User user, ThoughtsRequest request) {
+        return Thoughts1.builder()
                 .fairytale(fairytale)
                 .user(user)
                 .name(request.name())
