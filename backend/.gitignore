@@ -36,6 +36,9 @@ out/
 ### VS Code ###
 .vscode/
 
+### Kotlin ###
+.kotlin
+
 .env
 db_dev.mv.db
 db_dev.trace.db
