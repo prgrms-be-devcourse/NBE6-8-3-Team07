@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Comments from '@/app/fairytale/gallery/comments';
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Comments from "@/app/fairytale/gallery/comments";
 
 interface FairytaleDetail {
   id: number;
@@ -26,13 +26,17 @@ export default function FairytaleGalleryDetail() {
   const params = useParams();
   const router = useRouter();
   const fairytaleId = params.id;
+  const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   const fetchFairytaleDetail = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`https://nbe6-8-2-team07.onrender.com/fairytales/gallery/${fairytaleId}`, {
-        credentials: 'include'
-      });
+      const response = await fetch(
+        `${NEXT_PUBLIC_API_BASE_URL}/fairytales/gallery/${fairytaleId}`,
+        {
+          credentials: "include",
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -42,8 +46,8 @@ export default function FairytaleGalleryDetail() {
       setFairytale(data);
       setError(null);
     } catch (err) {
-      console.error('Error fetching fairytale detail:', err);
-      setError('동화를 불러오는 중 오류가 발생했습니다.');
+      console.error("Error fetching fairytale detail:", err);
+      setError("동화를 불러오는 중 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -57,10 +61,10 @@ export default function FairytaleGalleryDetail() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return date.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -119,7 +123,9 @@ export default function FairytaleGalleryDetail() {
 
         <section className="max-w-5xl mx-auto px-6">
           <div className="flex justify-center items-center h-64">
-            <div className="text-2xl text-gray-600">📚 동화를 찾을 수 없습니다.</div>
+            <div className="text-2xl text-gray-600">
+              📚 동화를 찾을 수 없습니다.
+            </div>
           </div>
         </section>
       </main>
@@ -154,16 +160,25 @@ export default function FairytaleGalleryDetail() {
             </div>
 
             {/* 동화 정보 */}
-            {(fairytale.childName || fairytale.childRole || fairytale.characters || fairytale.place || fairytale.mood || fairytale.lesson) && (
+            {(fairytale.childName ||
+              fairytale.childRole ||
+              fairytale.characters ||
+              fairytale.place ||
+              fairytale.mood ||
+              fairytale.lesson) && (
               <div className="mb-8 p-6 bg-orange-50 rounded-lg">
-                <h3 className="text-lg font-semibold text-orange-700 mb-4">동화 정보</h3>
+                <h3 className="text-lg font-semibold text-orange-700 mb-4">
+                  동화 정보
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {fairytale.childName && (
                     <div className="flex items-center space-x-2">
                       <span className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
                         👶 아이 이름
                       </span>
-                      <span className="text-gray-700">{fairytale.childName}</span>
+                      <span className="text-gray-700">
+                        {fairytale.childName}
+                      </span>
                     </div>
                   )}
                   {fairytale.childRole && (
@@ -171,7 +186,9 @@ export default function FairytaleGalleryDetail() {
                       <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
                         🎭 아이 역할
                       </span>
-                      <span className="text-gray-700">{fairytale.childRole}</span>
+                      <span className="text-gray-700">
+                        {fairytale.childRole}
+                      </span>
                     </div>
                   )}
                   {fairytale.characters && (
@@ -179,7 +196,9 @@ export default function FairytaleGalleryDetail() {
                       <span className="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-medium">
                         👥 등장인물
                       </span>
-                      <span className="text-gray-700">{fairytale.characters}</span>
+                      <span className="text-gray-700">
+                        {fairytale.characters}
+                      </span>
                     </div>
                   )}
                   {fairytale.place && (
@@ -212,7 +231,9 @@ export default function FairytaleGalleryDetail() {
 
             {/* 동화 내용 */}
             <div className="mb-8">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4">동화 내용</h3>
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                동화 내용
+              </h3>
               <div className="prose prose-lg max-w-none">
                 <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
                   {fairytale.content}
@@ -223,11 +244,13 @@ export default function FairytaleGalleryDetail() {
             {/* 이미지 (있는 경우) */}
             {fairytale.imageUrl && (
               <div className="mb-8">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4">동화 이미지</h3>
+                <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                  동화 이미지
+                </h3>
                 <div className="flex justify-center">
-                  <img 
-                    src={fairytale.imageUrl} 
-                    alt="동화 이미지" 
+                  <img
+                    src={fairytale.imageUrl}
+                    alt="동화 이미지"
                     className="max-w-full h-auto rounded-lg shadow-md"
                   />
                 </div>
@@ -240,7 +263,7 @@ export default function FairytaleGalleryDetail() {
             {/* 하단 버튼 */}
             <div className="flex justify-center pt-6 border-t border-orange-200">
               <button
-                onClick={() => router.push('/fairytale/gallery')}
+                onClick={() => router.push("/fairytale/gallery")}
                 className="px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors duration-300 cursor-pointer"
               >
                 갤러리로 돌아가기
@@ -251,4 +274,4 @@ export default function FairytaleGalleryDetail() {
       </section>
     </main>
   );
-} 
+}

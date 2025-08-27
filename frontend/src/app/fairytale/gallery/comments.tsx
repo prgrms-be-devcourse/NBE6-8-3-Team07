@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { customFetch } from '@/utils/customFetch';
+import React, { useState, useEffect, useCallback } from "react";
+import { customFetch } from "@/utils/customFetch";
 
 interface Comment {
   id: number;
@@ -18,35 +18,42 @@ interface CommentsProps {
 
 export default function Comments({ fairytaleId }: CommentsProps) {
   const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState('');
+  const [newComment, setNewComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
-  const [editingContent, setEditingContent] = useState('');
+  const [editingContent, setEditingContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
   // 댓글 조회
-  const fetchComments = useCallback(async (page: number) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await customFetch(`https://nbe6-8-2-team07.onrender.com/api/fairytales/${fairytaleId}/comments?page=${page}&size=5`, {
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+  const fetchComments = useCallback(
+    async (page: number) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await customFetch(
+          `${NEXT_PUBLIC_API_BASE_URL}/api/fairytales/${fairytaleId}/comments?page=${page}&size=5`,
+          {
+            credentials: "include",
+          }
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setComments(data.content);
+        setTotalPages(data.totalPages);
+      } catch (err) {
+        console.error("Error fetching comments:", err);
+        setError("댓글을 불러오는 데 실패했습니다.");
+      } finally {
+        setIsLoading(false);
       }
-      const data = await response.json();
-      setComments(data.content);
-      setTotalPages(data.totalPages);
-    } catch (err) {
-      console.error('Error fetching comments:', err);
-      setError('댓글을 불러오는 데 실패했습니다.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fairytaleId]);
+    },
+    [fairytaleId]
+  );
 
   useEffect(() => {
     fetchComments(currentPage);
@@ -57,24 +64,27 @@ export default function Comments({ fairytaleId }: CommentsProps) {
     if (!newComment.trim()) return;
 
     try {
-      const response = await customFetch(`https://nbe6-8-2-team07.onrender.com/api/fairytales/${fairytaleId}/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ fairytaleId, content: newComment }),
-      });
+      const response = await customFetch(
+        `${NEXT_PUBLIC_API_BASE_URL}/api/fairytales/${fairytaleId}/comments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ fairytaleId, content: newComment }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      setNewComment('');
+      setNewComment("");
       fetchComments(0); // 댓글 추가 후 목록 새로고침
     } catch (err) {
-      console.error('Error adding comment:', err);
-      setError('댓글 추가에 실패했습니다.');
+      console.error("Error adding comment:", err);
+      setError("댓글 추가에 실패했습니다.");
     }
   };
 
@@ -83,37 +93,43 @@ export default function Comments({ fairytaleId }: CommentsProps) {
     if (!editingContent.trim()) return;
 
     try {
-      const response = await customFetch(`https://nbe6-8-2-team07.onrender.com/api/comments/${commentId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ content: editingContent }),
-      });
+      const response = await customFetch(
+        `${NEXT_PUBLIC_API_BASE_URL}/api/comments/${commentId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ content: editingContent }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       setEditingCommentId(null);
-      setEditingContent('');
+      setEditingContent("");
       fetchComments(currentPage); // 댓글 수정 후 목록 새로고침
     } catch (err) {
-      console.error('Error editing comment:', err);
-      setError('댓글 수정에 실패했습니다.');
+      console.error("Error editing comment:", err);
+      setError("댓글 수정에 실패했습니다.");
     }
   };
 
   // 댓글 삭제
   const handleDeleteComment = async (commentId: number) => {
-    if (!confirm('정말로 이 댓글을 삭제하시겠습니까?')) return;
+    if (!confirm("정말로 이 댓글을 삭제하시겠습니까?")) return;
 
     try {
-      const response = await customFetch(`https://nbe6-8-2-team07.onrender.com/api/comments/${commentId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
+      const response = await customFetch(
+        `${NEXT_PUBLIC_API_BASE_URL}/api/comments/${commentId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -121,8 +137,8 @@ export default function Comments({ fairytaleId }: CommentsProps) {
 
       fetchComments(currentPage); // 댓글 삭제 후 목록 새로고침
     } catch (err) {
-      console.error('Error deleting comment:', err);
-      setError('댓글 삭제에 실패했습니다.');
+      console.error("Error deleting comment:", err);
+      setError("댓글 삭제에 실패했습니다.");
     }
   };
 
@@ -133,17 +149,17 @@ export default function Comments({ fairytaleId }: CommentsProps) {
 
   const cancelEditing = () => {
     setEditingCommentId(null);
-    setEditingContent('');
+    setEditingContent("");
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -184,8 +200,8 @@ export default function Comments({ fairytaleId }: CommentsProps) {
           onClick={() => handlePageChange(i)}
           className={`px-3 py-2 text-sm font-medium cursor-pointer ${
             i === currentPage
-              ? 'text-orange-600 bg-orange-50 border-orange-300'
-              : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-50'
+              ? "text-orange-600 bg-orange-50 border-orange-300"
+              : "text-gray-500 bg-white border-gray-300 hover:bg-gray-50"
           } border`}
         >
           {i + 1}
@@ -208,9 +224,7 @@ export default function Comments({ fairytaleId }: CommentsProps) {
 
     return (
       <div className="flex justify-center mt-8">
-        <div className="flex space-x-0">
-          {pages}
-        </div>
+        <div className="flex space-x-0">{pages}</div>
       </div>
     );
   };
@@ -236,19 +250,30 @@ export default function Comments({ fairytaleId }: CommentsProps) {
         </button>
       </div>
 
-      {isLoading && <p className="text-center text-gray-500">댓글 불러오는 중...</p>}
+      {isLoading && (
+        <p className="text-center text-gray-500">댓글 불러오는 중...</p>
+      )}
       {error && <p className="text-center text-red-500">{error}</p>}
 
       {/* 댓글 목록 */}
       <div className="space-y-4">
         {comments.length === 0 && !isLoading && !error && (
-          <p className="text-center text-gray-500">아직 댓글이 없습니다. 첫 댓글을 남겨주세요!</p>
+          <p className="text-center text-gray-500">
+            아직 댓글이 없습니다. 첫 댓글을 남겨주세요!
+          </p>
         )}
         {comments.map((comment) => (
-          <div key={comment.id} className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
+          <div
+            key={comment.id}
+            className="bg-white p-4 rounded-md shadow-sm border border-gray-200"
+          >
             <div className="flex justify-between items-center mb-2">
-              <span className="font-semibold text-gray-800">{comment.nickname}</span>
-              <span className="text-sm text-gray-500">{formatDate(comment.createdAt)}</span>
+              <span className="font-semibold text-gray-800">
+                {comment.nickname}
+              </span>
+              <span className="text-sm text-gray-500">
+                {formatDate(comment.createdAt)}
+              </span>
             </div>
             {editingCommentId === comment.id ? (
               <div>
