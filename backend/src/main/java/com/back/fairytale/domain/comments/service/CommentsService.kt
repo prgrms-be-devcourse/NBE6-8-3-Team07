@@ -45,7 +45,7 @@ class CommentsService (
     fun createComments(request: CommentsRequest, userId: Long): CommentsResponse {
         // 유저와 동화 조회
         val user = userRepository.findById(userId)
-            .orElseThrow { EntityNotFoundException("Id가 $id 인 댓글을 찾을 수 없습니다.") }
+            .orElseThrow { EntityNotFoundException("Id가 $id 인 유저를 찾을 수 없습니다.") }
         val fairytale = fairytaleRepository.findById(request.fairytaleId)
             .orElseThrow { EntityNotFoundException("Id가 ${request.fairytaleId} 인 동화를 찾을 수 없습니다.") }
 
