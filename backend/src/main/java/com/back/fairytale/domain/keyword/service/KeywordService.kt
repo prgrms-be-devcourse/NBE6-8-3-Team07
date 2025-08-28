@@ -20,7 +20,7 @@ class KeywordService(
 
     // 타입별 키워드 조회 (Enum 타입으로 받음)
     @Transactional(readOnly = true)
-    fun getKeywordsByType(keywordType: KeywordType?): List<KeywordResponseDto> {
+    fun getKeywordsByType(keywordType: KeywordType): List<KeywordResponseDto> {
         return keywordRepository.findByKeywordType(keywordType).map { KeywordResponseDto.fromEntity(it) }
     }
 

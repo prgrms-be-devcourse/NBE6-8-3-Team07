@@ -22,7 +22,7 @@ data class Keyword(
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    val keywordType: KeywordType?,
+    val keywordType: KeywordType,
 
     @Column(name = "usage_count", nullable = false)
     var usageCount: Int = 0,

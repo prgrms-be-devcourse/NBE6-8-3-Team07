@@ -7,6 +7,6 @@ import java.util.Optional
 
 interface KeywordRepository : JpaRepository<Keyword, Long> {
     fun findByKeyword(keyword: String): Optional<Keyword>
-    fun findByKeywordType(keywordType: KeywordType?): List<Keyword>
-    fun findByKeywordAndKeywordType(keyword: String, keywordType: KeywordType?): Optional<Keyword>
+    fun findByKeywordType(keywordType: KeywordType): List<Keyword>
+    fun findByKeywordAndKeywordType(keyword: String, keywordType: KeywordType): Optional<Keyword>
 }

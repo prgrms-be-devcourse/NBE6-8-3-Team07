@@ -10,10 +10,11 @@ data class KeywordResponseDto(
 ) {
     companion object {
         fun fromEntity(keyword: Keyword): KeywordResponseDto {
+            val id = keyword.keywordId ?: throw IllegalStateException("Keyword ID must not be null when mapping to response")
             return KeywordResponseDto(
-                keywordId = keyword.keywordId ?: 0L,
+                keywordId = id,
                 keyword = keyword.keyword,
-                keywordType = keyword.keywordType?.name ?: "",
+                keywordType = keyword.keywordType.name,
                 usageCount = keyword.usageCount
             )
         }
