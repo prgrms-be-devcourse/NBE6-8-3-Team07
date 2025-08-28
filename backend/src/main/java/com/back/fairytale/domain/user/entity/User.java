@@ -52,6 +52,10 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BookMark> favorites = new ArrayList<>();
 
+    public Long getId() {
+        return id;
+    }
+
     public User update(String name, String nickname, String email) {
         this.name = name;
         this.nickname = nickname;

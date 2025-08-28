@@ -94,6 +94,10 @@ public class Fairytale {
         return getJoinedKeywordsByType(KeywordType.MOOD);
     }
 
+    public Long getId() {
+        return id;
+    }
+
     private String getFirstKeywordByType(KeywordType type) {
         return getKeywordsByType(type)
                 .stream()
