@@ -67,9 +67,9 @@ class ThoughtsServiceTest {
                 .id(1L)
                 .fairytale(testFairytale)
                 .user(testUser)
-                .name(testThoughtsRequest.name())
-                .content(testThoughtsRequest.content())
-                .parentContent(testThoughtsRequest.parentContent())
+                .name(testThoughtsRequest.name)
+                .content(testThoughtsRequest.content)
+                .parentContent(testThoughtsRequest.parentContent)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -90,9 +90,9 @@ class ThoughtsServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.id()).isEqualTo(testThought.getId());
-        assertThat(response.name()).isEqualTo(testThought.getName());
-        assertThat(response.content()).isEqualTo(testThought.getContent());
+        assertThat(response.id).isEqualTo(testThought.getId());
+        assertThat(response.name).isEqualTo(testThought.getName());
+        assertThat(response.content).isEqualTo(testThought.getContent());
         // ThoughtsResponse에 nickname 필드가 있다면 추가
         // assertThat(response.nickname()).isEqualTo(testUser.getNickname());
         verify(thoughtsRepository, times(1)).save(any(Thoughts.class));
@@ -136,9 +136,9 @@ class ThoughtsServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.id()).isEqualTo(testThought.getId());
-        assertThat(response.name()).isEqualTo(testThought.getName());
-        assertThat(response.content()).isEqualTo(testThought.getContent());
+        assertThat(response.id).isEqualTo(testThought.getId());
+        assertThat(response.name).isEqualTo(testThought.getName());
+        assertThat(response.content).isEqualTo(testThought.getContent());
     }
 
     @Test
@@ -177,10 +177,10 @@ class ThoughtsServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.name()).isEqualTo(testThoughtsUpdateRequest.name());
-        assertThat(response.content()).isEqualTo(testThoughtsUpdateRequest.content());
-        assertThat(response.parentContent()).isEqualTo(testThoughtsUpdateRequest.parentContent());
-        assertThat(testThought.getName()).isEqualTo(testThoughtsUpdateRequest.name()); // 엔티티의 내용도 업데이트되었는지 확인
+        assertThat(response.name).isEqualTo(testThoughtsUpdateRequest.name);
+        assertThat(response.content).isEqualTo(testThoughtsUpdateRequest.content);
+        assertThat(response.parentContent).isEqualTo(testThoughtsUpdateRequest.parentContent);
+        assertThat(testThought.getName()).isEqualTo(testThoughtsUpdateRequest.name); // 엔티티의 내용도 업데이트되었는지 확인
     }
 
     @Test
