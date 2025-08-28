@@ -1,76 +1,72 @@
-package com.back.fairytale.global.security.jwt;
+package com.back.fairytale.global.security.jwt
 
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import io.jsonwebtoken.Jwts
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
+import java.nio.charset.StandardCharsets
+import java.util.*
+import javax.crypto.SecretKey
+import javax.crypto.spec.SecretKeySpec
 
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.UUID;
-
-@Slf4j
 @Component
-public class JWTUtil {
-    private final SecretKey secretKey;
+class JWTUtil(@Value("\${spring.jwt.secret}") secret: String) {
+    private val secretKey: SecretKey
 
-    public JWTUtil(@Value("${spring.jwt.secret}") String secret) {
-        log.info("JWT secret key: {}", secret);
-        secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8),
-                Jwts.SIG.HS256.key().build().getAlgorithm());
+    init {
+        secretKey = SecretKeySpec(
+            secret.toByteArray(StandardCharsets.UTF_8),
+            Jwts.SIG.HS256.key().build().algorithm
+        )
     }
 
-    public String createJwt(Long userId, String role, Long expiredMs, String category) {
+    fun createJwt(userId: Long, role: String, expiredMs: Long, category: String): String {
         return Jwts.builder()
-                .claim("userId", userId)
-                .claim("role", role)
-                .claim("category", category)
-                .claim("jti", UUID.randomUUID().toString())
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expiredMs))
-                .signWith(secretKey)
-                .compact();
+            .claim("userId", userId.toString())
+            .claim("role", role)
+            .claim("category", category)
+            .claim("jti", UUID.randomUUID().toString())
+            .issuedAt(Date(System.currentTimeMillis()))
+            .expiration(Date(System.currentTimeMillis() + expiredMs))
+            .signWith(secretKey)
+            .compact()
     }
 
-    public boolean validateToken(String token) {
-        try {
-            Jwts.parser()
-                    .verifyWith(secretKey)
-                    .build()
-                    .parseSignedClaims(token);
-            return true;
-        } catch (JwtException e) {
-            return false;
+    fun validateToken(token: String): Boolean = runCatching {
+        Jwts.parser()
+            .verifyWith(secretKey)
+            .build()
+            .parseSignedClaims(token)
+    }.isSuccess
+
+    fun getUserId(token: String): Long {
+        val payload = Jwts.parser()
+            .verifyWith(secretKey)
+            .build()
+            .parseSignedClaims(token)
+            .payload
+
+        return when (val userId = payload["userId"]) {
+            is Number -> userId.toLong()
+            is String -> userId.toLong()
+            else -> throw IllegalArgumentException("Invalid userId type: ${userId?.javaClass}")
         }
     }
 
-    public Long getUserId(String token) {
+    fun getCategory(token: String): String {
         return Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .get("userId", Long.class);
+            .verifyWith(secretKey)
+            .build()
+            .parseSignedClaims(token)
+            .payload
+            .get("category", String::class.java)
     }
 
-    public String getCategory(String token) {
+    fun getRole(token: String): String {
         return Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .get("category", String.class);
-    }
-
-    public String getRole(String token) {
-        return Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .get("role", String.class);
+            .verifyWith(secretKey)
+            .build()
+            .parseSignedClaims(token)
+            .payload
+            .get("role", String::class.java)
     }
 }

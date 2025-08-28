@@ -1,127 +1,102 @@
-package com.back.fairytale.global.security.jwt;
+package com.back.fairytale.global.security.jwt
 
-import jakarta.servlet.http.Cookie;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
-import java.util.Arrays;
-
+import jakarta.servlet.http.Cookie
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
 
 @Component
-@RequiredArgsConstructor
-public class JWTProvider {
+class JWTProvider(private val jwtUtil: JWTUtil) {
 
-    private final JWTUtil jwtUtil;
+    @Value("\${spring.cookie.secure}")
+    private val cookieSecure: Boolean = false
 
-    @Value("${spring.cookie.secure}")
-    private boolean cookieSecure;
+    @Value("\${spring.cookie.same-site:Lax}")
+    private val cookieSameSite: String = "Lax"
 
-    @Value("${spring.cookie.same-site}")
-    private String cookieSameSite;
-
-    @Getter
-    public enum TokenType {
+    enum class TokenType(val tokenName: String, val expirationMs: Long) {
         ACCESS("Authorization", 10 * 60 * 1000L),
         REFRESH("refresh", 24 * 60 * 60 * 1000L);
+    }
 
-        private final String name;
-        private final Long expirationMs;
+    fun createRefreshTokenCookie(refreshToken: String): Cookie {
+        return createSessionCookie(refreshToken, TokenType.REFRESH.tokenName)
+    }
 
-        TokenType(String name, Long expirationMs) {
-            this.name = name;
-            this.expirationMs = expirationMs;
+    fun createAccessToken(userId: Long, role: String): String {
+        return createToken(userId, role, TokenType.ACCESS)
+    }
+
+    fun createRefreshToken(userId: Long, role: String): String {
+        return createToken(userId, role, TokenType.REFRESH)
+    }
+
+    fun wrapTokenToCookie(token: String, tokenType: TokenType): Cookie {
+        return createSessionCookie(token, tokenType.tokenName)
+    }
+
+    fun wrapAccessTokenToCookie(token: String): Cookie {
+        return wrapTokenToCookie(token, TokenType.ACCESS)
+    }
+
+    fun wrapRefreshTokenToCookie(token: String): Cookie {
+        return wrapTokenToCookie(token, TokenType.REFRESH)
+    }
+
+    fun extractTokenFromCookies(cookies: Array<Cookie>?, tokenType: TokenType): String? {
+        return cookies?.find { it.name == tokenType.tokenName }?.value
+    }
+
+    fun extractRefreshToken(cookies: Array<Cookie>?): String? {
+        return extractTokenFromCookies(cookies, TokenType.REFRESH)
+    }
+
+    fun validateAccessToken(accessToken: String?): Boolean {
+        return validateToken(accessToken, TokenType.ACCESS)
+    }
+
+    fun validateRefreshToken(refreshToken: String): Boolean {
+        return validateToken(refreshToken, TokenType.REFRESH)
+    }
+
+    fun getUserIdFromAccessToken(accessToken: String): Long {
+        return getUserIdFromToken(accessToken, TokenType.ACCESS)
+    }
+
+    fun getUserIdFromRefreshToken(refreshToken: String): Long {
+        return getUserIdFromToken(refreshToken, TokenType.REFRESH)
+    }
+
+    fun createSessionCookie(token: String, name: String): Cookie {
+        return Cookie(name, token).apply {
+            isHttpOnly = true
+            path = "/"
+            secure = cookieSecure
+            setAttribute("SameSite", cookieSameSite)
         }
     }
 
-    public Cookie createRefreshTokenCookie(String refreshToken) {
-        return createSessionCookie(refreshToken, TokenType.REFRESH.getName());
-    }
-
-    public String createAccessToken(Long userId, String role) {
-        return createToken(userId, role, TokenType.ACCESS);
-    }
-
-    public String createRefreshToken(Long userId, String role) {
-        return createToken(userId, role, TokenType.REFRESH);
-    }
-
-    public Cookie wrapTokenToCookie(String token, TokenType tokenType) {
-        return createSessionCookie(token, tokenType.getName());
-    }
-
-    public Cookie wrapAccessTokenToCookie(String token) {
-        return wrapTokenToCookie(token, TokenType.ACCESS);
-    }
-
-    public Cookie wrapRefreshTokenToCookie(String token) {
-        return wrapTokenToCookie(token, TokenType.REFRESH);
-    }
-
-    public String extractTokenFromCookies(Cookie[] cookies, TokenType tokenType) {
-        if (cookies == null) return null;
-        return Arrays.stream(cookies)
-                .filter(cookie -> tokenType.getName().equals(cookie.getName()))
-                .map(Cookie::getValue)
-                .findFirst()
-                .orElse(null);
-    }
-
-    public String extractRefreshToken(Cookie[] cookies) {
-        return extractTokenFromCookies(cookies, TokenType.REFRESH);
-    }
-
-    public boolean validateAccessToken(String accessToken) {
-        return validateToken(accessToken, TokenType.ACCESS);
-    }
-
-    public boolean validateRefreshToken(String refreshToken) {
-        return validateToken(refreshToken, TokenType.REFRESH);
-    }
-
-    public Long getUserIdFromAccessToken(String accessToken) {
-        return getUserIdFromToken(accessToken, TokenType.ACCESS);
-    }
-
-    public Long getUserIdFromRefreshToken(String refreshToken) {
-        return getUserIdFromToken(refreshToken, TokenType.REFRESH);
-    }
-
-    public Cookie createSessionCookie(String token, String name) {
-        Cookie cookie = new Cookie(name, token);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setSecure(cookieSecure);
-        cookie.setAttribute("SameSite", cookieSameSite);
-        return cookie;
-    }
-
-    public Cookie createCookie(String token, String name, int maxAge) {
-        Cookie cookie = new Cookie(name, token);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-        cookie.setSecure(cookieSecure);
-        cookie.setMaxAge(maxAge);
-        cookie.setAttribute("SameSite", cookieSameSite);
-        return cookie;
-    }
-
-    private boolean validateToken(String token, TokenType tokenType) {
-        if (token == null) {
-            return false;
+    fun createCookie(token: String?, name: String, maxAge: Int): Cookie {
+        return Cookie(name, token).apply {
+            isHttpOnly = true
+            path = "/"
+            secure = cookieSecure
+            this.maxAge = maxAge
+            setAttribute("SameSite", cookieSameSite)
         }
-        return jwtUtil.validateToken(token) && tokenType.getName().equals(jwtUtil.getCategory(token));
     }
 
-    private Long getUserIdFromToken(String token, TokenType tokenType) {
-        if (!validateToken(token, tokenType)) {
-            throw new IllegalArgumentException("Invalid " + tokenType.getName() + " token");
-        }
-        return jwtUtil.getUserId(token);
+    private fun validateToken(token: String?, tokenType: TokenType): Boolean {
+        return token?.let {
+            jwtUtil.validateToken(it) && tokenType.tokenName == jwtUtil.getCategory(it)
+        } ?: false
     }
 
-    private String createToken(Long userId, String role, TokenType tokenType) {
-        return jwtUtil.createJwt(userId, role, tokenType.getExpirationMs(), tokenType.getName());
+    private fun getUserIdFromToken(token: String?, tokenType: TokenType): Long {
+        require(validateToken(token, tokenType)) { "Invalid ${tokenType.tokenName} token" }
+        return jwtUtil.getUserId(token!!)
+    }
+
+    private fun createToken(userId: Long, role: String, tokenType: TokenType): String {
+        return jwtUtil.createJwt(userId, role, tokenType.expirationMs, tokenType.name)
     }
 }
