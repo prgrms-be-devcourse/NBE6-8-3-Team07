@@ -44,6 +44,7 @@ class Thoughts (
     fun update(name: String?, content: String?, parentContent: String?) {
         // 아이이름 수정
         name?.let {
+            // 공백 입력 방지 로직
             if (it.isNotBlank()) {
                 this.name = it.trim()
             }
