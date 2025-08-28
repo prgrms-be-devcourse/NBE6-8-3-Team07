@@ -1,48 +1,50 @@
-package com.back.fairytale.global.security.oauth2;
+package com.back.fairytale.global.security.oauth2
 
-import com.back.fairytale.global.security.port.LogoutService;
-import com.back.fairytale.global.security.jwt.JWTProvider;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.web.authentication.logout.LogoutHandler;
-import org.springframework.stereotype.Component;
-
-import java.io.IOException;
+import com.back.fairytale.global.security.jwt.JWTProvider
+import com.back.fairytale.global.security.port.LogoutService
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import lombok.RequiredArgsConstructor
+import lombok.extern.slf4j.Slf4j
+import org.slf4j.LoggerFactory
+import org.springframework.security.core.Authentication
+import org.springframework.security.web.authentication.logout.LogoutHandler
+import org.springframework.stereotype.Component
+import java.io.IOException
 
 @Component
-@Slf4j
-@RequiredArgsConstructor
-public class CustomLogoutHandler implements LogoutHandler {
-    private final LogoutService logoutService;
-    private final JWTProvider jwtProvider;
+class CustomLogoutHandler(
+    private val logoutService: LogoutService,
+    private val jwtProvider: JWTProvider
+) : LogoutHandler {
 
-    @Override
-    public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-        if (request.getMethod().equals("GET")) {
-            try {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "GET method not allowed");
-                return;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+    companion object {
+        private val logger = LoggerFactory.getLogger(CustomLogoutHandler::class.java)
+    }
+
+    override fun logout(request: HttpServletRequest, response: HttpServletResponse, authentication: Authentication?) {
+        if (request.method == "GET") {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "GET method not allowed")
+            return
         }
 
-        try {
-            String accessToken = jwtProvider.extractTokenFromCookies(request.getCookies(), JWTProvider.TokenType.ACCESS);
+        runCatching {
+            val accessToken = jwtProvider.extractTokenFromCookies(
+                request.cookies,
+                JWTProvider.TokenType.ACCESS
+            )
 
             if (accessToken != null && jwtProvider.validateAccessToken(accessToken)) {
-                Long userId = jwtProvider.getUserIdFromAccessToken(accessToken);
-                logoutService.logout(userId);
+                val userId = jwtProvider.getUserIdFromAccessToken(accessToken)
+                logoutService.logout(userId)
             }
+        }.onFailure { e ->
+            logger.warn("Logout failed: {}", e.message)
+        }
 
-        } catch (Exception e) {
-            log.warn("Logout failed: {}", e.getMessage());
-        } finally {
-            response.addCookie(jwtProvider.createCookie(null, "Authorization", 0));
-            response.addCookie(jwtProvider.createCookie(null, "refresh", 0));
+        response.apply {
+            addCookie(jwtProvider.createCookie(null, "Authorization", 0))
+            addCookie(jwtProvider.createCookie(null, "refresh", 0))
         }
     }
 }

@@ -1,42 +1,48 @@
-package com.back.fairytale.global.security.oauth2;
+package com.back.fairytale.global.security.oauth2
 
-import com.back.fairytale.global.security.CorsProperties;
-import com.back.fairytale.global.security.CustomOAuth2User;
-import com.back.fairytale.global.security.port.UserTokenService;
-import com.back.fairytale.global.security.jwt.JWTProvider;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import org.springframework.stereotype.Component;
-
-import java.io.IOException;
+import com.back.fairytale.global.security.CorsProperties
+import com.back.fairytale.global.security.CustomOAuth2User
+import com.back.fairytale.global.security.jwt.JWTProvider
+import com.back.fairytale.global.security.port.UserTokenService
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import lombok.RequiredArgsConstructor
+import lombok.extern.slf4j.Slf4j
+import org.slf4j.LoggerFactory
+import org.springframework.security.core.Authentication
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler
+import org.springframework.stereotype.Component
 
 @RequiredArgsConstructor
 @Component
 @Slf4j
-public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
+class OAuth2LoginSuccessHandler(
+    private val jwtProvider: JWTProvider,
+    private val userTokenService: UserTokenService,
+    private val corsProperties: CorsProperties
+) : AuthenticationSuccessHandler {
 
-    private final JWTProvider jwtProvider;
-    private final UserTokenService userTokenService;
-    private final CorsProperties corsProperties;
+    companion object {
+        private val logger = LoggerFactory.getLogger(OAuth2LoginSuccessHandler::class.java)
+    }
 
-    @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
-        log.info("OAuth2 로그인 성공: {}", authentication.getName());
-        CustomOAuth2User customUser = (CustomOAuth2User) authentication.getPrincipal();
+    override fun onAuthenticationSuccess(
+        request: HttpServletRequest?,
+        response: HttpServletResponse,
+        authentication: Authentication
+    ) {
+        logger.info("OAuth2 로그인 성공: {}", authentication.name)
+        val customUser = authentication.principal as CustomOAuth2User
+        val userId = customUser.id
+        val refreshToken = userTokenService.getUserToken(userId)
 
-        Long userId = customUser.getId();
-        String refreshToken = userTokenService.getUserToken(userId);
+        val refreshCookie = jwtProvider.createRefreshTokenCookie(refreshToken)
 
-        Cookie refreshCookie = jwtProvider.createRefreshTokenCookie(refreshToken);
+        val redirectUrl: String = corsProperties.allowedOrigins.first()
 
-        String redirectUrl = corsProperties.getAllowedOrigins().getFirst();
-
-        response.addCookie(refreshCookie);
-        response.sendRedirect(redirectUrl);
+        response.apply {
+            addCookie(refreshCookie)
+            sendRedirect(redirectUrl)
+        }
     }
 }
