@@ -28,8 +28,8 @@ class ThoughtsService (
     // 아이생각 조회 및 유저 확인
     private fun findThoughtAndCheckUser(id: Long, userId: Long): Thoughts {
         // 아이생각 조회
-        val thoughts = thoughtsRepository.findById(id).orElse(null)
-                ?: throw EntityNotFoundException("Id가 $id 인 thoughts를 찾을 수 없습니다.")
+        val thoughts = thoughtsRepository.findById(id)
+            .orElseThrow { EntityNotFoundException("Id가 $id 인 thoughts를 찾을 수 없습니다.") }
 
         // 유저 확인
         if (thoughts.user.id != userId) {
@@ -42,10 +42,10 @@ class ThoughtsService (
     // 아이생각 작성
     fun createThoughts(request: ThoughtsRequest, userId: Long): ThoughtsResponse {
         // 유저와 동화조회
-        val user = userRepository.findById(userId).orElse(null)
-            ?: throw EntityNotFoundException("Id가 $userId 인 유저를 찾을 수 없습니다.")
-        val fairytale = fairytaleRepository.findById(request.fairytaleId).orElse(null)
-            ?: throw EntityNotFoundException("Id가 ${request.fairytaleId} 인 동화를 찾을 수 없습니다.")
+        val user = userRepository.findById(userId)
+            .orElseThrow { EntityNotFoundException("Id가 $userId 인 유저를 찾을 수 없습니다.") }
+        val fairytale = fairytaleRepository.findById(request.fairytaleId)
+            .orElseThrow { EntityNotFoundException("Id가 ${request.fairytaleId} 인 동화를 찾을 수 없습니다.") }
 
         // 아이생각 생성
         val thoughts = Thoughts(fairytale, user, request.name, request.content, request.parentContent)
