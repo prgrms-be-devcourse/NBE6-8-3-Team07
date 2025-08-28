@@ -60,13 +60,13 @@ public class AuthService implements LogoutService, UserTokenService {
     }
 
     @Override
-    public void logout(Long userId) {
+    public void logout(long userId) {
         User findUser = findUserById(userId);
         findUser.setRefreshToken(null);
     }
 
     @Override
-    public String getUserToken(Long userId) {
+    public String getUserToken(long userId) {
         return findUserById(userId).getRefreshToken();
     }
 
