@@ -3,7 +3,6 @@ package com.back.fairytale.global.security;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.ArrayList;
@@ -18,6 +17,10 @@ public class CustomOAuth2User implements OAuth2User {
     private final Long id;
     private final String username;
     private final String role;
+
+    public Long getId() {
+        return id;
+    }
 
     @Override
     public String getName() {
