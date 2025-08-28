@@ -11,7 +11,7 @@ data class ThoughtsResponse(
     val name: String,
     val content: String,
     val parentContent: String,
-    val createdAt: LocalDateTime,
+    val createdAt: LocalDateTime?,
 ) {
     companion object {
         @JvmStatic
