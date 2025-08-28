@@ -1,6 +1,7 @@
 package com.back.fairytale.domain.user.entity;
 
 import com.back.fairytale.domain.bookmark.entity.BookMark;
+import com.back.fairytale.domain.fairytale.entity.Fairytale;
 import com.back.fairytale.domain.user.enums.IsDeleted;
 import com.back.fairytale.domain.user.enums.Role;
 import com.back.fairytale.global.entity.BaseEntity;
@@ -11,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Getter
 @Builder
 @Table(name = "users")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -42,7 +42,6 @@ public class User extends BaseEntity {
     private String socialId;
 
     @Column(unique = true, columnDefinition = "TEXT")
-    @Setter
     private String refreshToken;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -51,14 +50,42 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BookMark> favorites = new ArrayList<>();
 
-    public Long getId() {
-        return id;
-    }
-
     public User update(String name, String nickname, String email) {
         this.name = name;
         this.nickname = nickname;
         this.email = email;
         return this;
+    }
+    // fixme 일단 임시로 getter 생성
+    public Long getId() {
+        return id;
+    }
+
+    public String getSocialId() {
+        return socialId;
+    }
+
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+
+    public String getEmail() {
+        return email;
     }
 }

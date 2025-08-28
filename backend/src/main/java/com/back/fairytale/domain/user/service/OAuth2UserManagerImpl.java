@@ -34,14 +34,14 @@ public class OAuth2UserManagerImpl implements OAuth2UserManager {
         String newRefreshToken = jwtProvider.createRefreshToken(savedUser.getId(), savedUser.getRole().getKey());
         savedUser.setRefreshToken(newRefreshToken);
 
-        return OAuth2UserInfo.builder()
-                .id(savedUser.getId())
-                .socialId(savedUser.getSocialId())
-                .name(savedUser.getName())
-                .nickname(savedUser.getNickname())
-                .email(savedUser.getEmail())
-                .role(savedUser.getRole().getKey())
-                .build();
+        return new OAuth2UserInfo(
+                savedUser.getId(),
+                savedUser.getSocialId(),
+                savedUser.getName(),
+                savedUser.getNickname(),
+                savedUser.getEmail(),
+                savedUser.getRole().getKey()
+        );
     }
 
     private User createUser(Map<String, Object> response) {

@@ -150,7 +150,7 @@ class FairytaleService(
         val fairytale = fairytaleRepository.findByIdAndUserIdWithKeywordsFetch(fairytaleId, userId)
             ?: throw FairytaleNotFoundException("동화를 찾을 수 없거나 수정 권한이 없습니다. ID: $fairytaleId")
 
-        fairytale.setPublic(isPublic)
+        fairytale.isPublic = isPublic
         fairytaleRepository.save(fairytale)
 
         log.info("동화 공개 설정 변경 - ID: {}, 공개여부: {}", fairytaleId, isPublic)
