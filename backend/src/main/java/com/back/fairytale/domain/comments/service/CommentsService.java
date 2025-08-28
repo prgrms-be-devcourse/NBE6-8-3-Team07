@@ -46,11 +46,11 @@ public class CommentsService {
         // 유저와 동화 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Id가 " + userId + "인 유저를 찾을 수 없습니다."));
-        Fairytale fairytale = fairytaleRepository.findById(request.fairytaleId())
-                .orElseThrow(() -> new RuntimeException("Id가 " + request.fairytaleId() + "인 동화를 찾을 수 없습니다."));
+        Fairytale fairytale = fairytaleRepository.findById(request.fairytaleId)
+                .orElseThrow(() -> new RuntimeException("Id가 " + request.fairytaleId + "인 동화를 찾을 수 없습니다."));
 
         // 댓글 생성
-        Comments comments = Comments.of(fairytale, user, request.content());
+        Comments comments = Comments.of(fairytale, user, request.content);
 
         // 댓글 저장
         Comments savedComments = commentsRepository.save(comments);
@@ -79,7 +79,7 @@ public class CommentsService {
         Comments comments = findCommentAndCheckUser(id, userId);
 
         // 댓글 수정
-        comments.updateContent(request.content());
+        comments.updateContent(request.content);
 
         // 응답 생성
         return CommentsResponse.from(comments);

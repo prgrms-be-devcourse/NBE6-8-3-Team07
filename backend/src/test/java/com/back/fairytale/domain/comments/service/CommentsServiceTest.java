@@ -89,9 +89,9 @@ class CommentsServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.id()).isEqualTo(testComment.getId());
-        assertThat(response.content()).isEqualTo(testComment.getContent());
-        assertThat(response.nickname()).isEqualTo(testUser.getNickname());
+        assertThat(response.id).isEqualTo(testComment.getId());
+        assertThat(response.content).isEqualTo(testComment.getContent());
+        assertThat(response.nickname).isEqualTo(testUser.getNickname());
         verify(commentsRepository, times(1)).save(any(Comments.class));
     }
 
@@ -141,8 +141,8 @@ class CommentsServiceTest {
         assertThat(responsePage).isNotNull();
         assertThat(responsePage.getTotalElements()).isEqualTo(commentsList.size());
         assertThat(responsePage.getContent()).hasSize(commentsList.size());
-        assertThat(responsePage.getContent().get(0).id()).isEqualTo(testComment.getId());
-        assertThat(responsePage.getContent().get(0).nickname()).isEqualTo(testUser.getNickname());
+        assertThat(responsePage.getContent().get(0).id).isEqualTo(testComment.getId());
+        assertThat(responsePage.getContent().get(0).nickname).isEqualTo(testUser.getNickname());
     }
 
     @Test
@@ -171,8 +171,8 @@ class CommentsServiceTest {
 
         // Then
         assertThat(response).isNotNull();
-        assertThat(response.content()).isEqualTo(testCommentsUpdateRequest.content());
-        assertThat(testComment.getContent()).isEqualTo(testCommentsUpdateRequest.content()); // 엔티티의 내용도 업데이트되었는지 확인
+        assertThat(response.content).isEqualTo(testCommentsUpdateRequest.content);
+        assertThat(testComment.getContent()).isEqualTo(testCommentsUpdateRequest.content); // 엔티티의 내용도 업데이트되었는지 확인
     }
 
     @Test
