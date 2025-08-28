@@ -1,5 +1,5 @@
-package com.back.fairytale.global.security.port;
+package com.back.fairytale.global.security.port
 
-public interface UserTokenService {
-    String getUserToken(Long userId);
+interface UserTokenService {
+    fun getUserToken(userId: Long): String
 }
