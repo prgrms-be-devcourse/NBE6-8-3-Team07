@@ -26,7 +26,7 @@ class ThoughtsController (
         @RequestBody request: @Valid ThoughtsRequest,
         @AuthenticationPrincipal customOAuth2User: CustomOAuth2User
     ): ResponseEntity<ThoughtsResponse> {
-        val response = thoughtsService.createThoughts(request, customOAuth2User.id)
+        val response = thoughtsService.createThoughts(request, customOAuth2User.id) // customOAuth2User변환 후 테스트예정
 
         // 새로 생성된 리소스의 URI를 생성
         val location = URI.create("/api/thoughts/" + response.id)

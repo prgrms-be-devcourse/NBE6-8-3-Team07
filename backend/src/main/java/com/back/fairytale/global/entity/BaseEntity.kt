@@ -14,7 +14,7 @@ abstract class BaseEntity {
     @Column(name = "created_at", updatable = false, nullable = false)
     @CreatedDate
     var createdAt: LocalDateTime? = null
-        private set
+        private set // Kotlin과 IDE와의 충돌로 문법오류로 인식, 추후 테스트 후 수정필요할시 수정 예정
 
     @Column(name = "updated_at", nullable = false)
     @LastModifiedDate
