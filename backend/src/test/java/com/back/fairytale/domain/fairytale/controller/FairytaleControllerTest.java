@@ -88,10 +88,10 @@ public class FairytaleControllerTest {
 
         FairytaleResponse response = createFairytale(requestJson);
 
-        assertThat(response.id).isNotNull();
-        assertThat(response.title).isNotNull();
-        assertThat(response.childName).isEqualTo("지민");
-        assertThat(response.childRole).isEqualTo("용감한 기사");
+        assertThat(response.getId()).isNotNull();
+        assertThat(response.getTitle()).isNotNull();
+        assertThat(response.getChildName()).isEqualTo("지민");
+        assertThat(response.getChildRole()).isEqualTo("용감한 기사");
 
         System.out.println("동화 생성 성공");
     }
@@ -150,9 +150,9 @@ public class FairytaleControllerTest {
 
         assertThat(responseList).isNotEmpty();
         assertThat(responseList).hasSize(1);
-        assertThat(responseList.get(0).id).isNotNull();
-        assertThat(responseList.get(0).title).isNotNull();
-        assertThat(responseList.get(0).createdAt).isNotNull();
+        assertThat(responseList.get(0).getId()).isNotNull();
+        assertThat(responseList.get(0).getTitle()).isNotNull();
+        assertThat(responseList.get(0).getCreatedAt()).isNotNull();
 
         System.out.println("사용자별 동화 전체 리스트 조회 성공");
     }
@@ -186,7 +186,8 @@ public class FairytaleControllerTest {
         // 동화 생성
         FairytaleResponse response = createFairytale(requestJson);
 
-        Optional<Fairytale> savedFairytale = fairytaleRepository.findById(response.id);
+        Optional<Fairytale> savedFairytale = fairytaleRepository.findById(response.getId());
+
         assertThat(savedFairytale).isPresent();
 
         Fairytale fairytale = savedFairytale.get();
@@ -297,7 +298,7 @@ public class FairytaleControllerTest {
         """;
 
         FairytaleResponse response = createFairytale(requestJson);
-        Long fairytaleId = response.id;
+        Long fairytaleId = response.getId();
 
         MvcResult detailResult = mockMvc.perform(get("/fairytales/" + fairytaleId)
                         .contentType(MediaType.APPLICATION_JSON))
@@ -309,16 +310,16 @@ public class FairytaleControllerTest {
         String detailResponseBody = detailResult.getResponse().getContentAsString();
         FairytaleDetailResponse detailResponse = objectMapper.readValue(detailResponseBody, FairytaleDetailResponse.class);
 
-        assertThat(detailResponse.id).isEqualTo(fairytaleId);
-        assertThat(detailResponse.title).isNotNull();
-        assertThat(detailResponse.content).isNotNull();
-        assertThat(detailResponse.childName).isEqualTo("하늘");
-        assertThat(detailResponse.childRole).isEqualTo("마법사");
-        assertThat(detailResponse.characters).contains("용", "요정");
-        assertThat(detailResponse.place).isEqualTo("마법의 숲");
-        assertThat(detailResponse.lesson).isEqualTo("용기");
-        assertThat(detailResponse.mood).isEqualTo("환상적인");
-        assertThat(detailResponse.createdAt).isNotNull();
+        assertThat(detailResponse.getId()).isEqualTo(fairytaleId);
+        assertThat(detailResponse.getTitle()).isNotNull();
+        assertThat(detailResponse.getContent()).isNotNull();
+        assertThat(detailResponse.getChildName()).isEqualTo("하늘");
+        assertThat(detailResponse.getChildRole()).isEqualTo("마법사");
+        assertThat(detailResponse.getCharacters()).contains("용", "요정");
+        assertThat(detailResponse.getPlace()).isEqualTo("마법의 숲");
+        assertThat(detailResponse.getLesson()).isEqualTo("용기");
+        assertThat(detailResponse.getMood()).isEqualTo("환상적인");
+        assertThat(detailResponse.getCreatedAt()).isNotNull();
 
         System.out.println("사용자별 동화 상세 조회 성공");
     }
@@ -338,7 +339,7 @@ public class FairytaleControllerTest {
         """;
 
         FairytaleResponse response = createFairytale(requestJson);
-        Long fairytaleId = response.id;
+        Long fairytaleId = response.getId();
 
         MvcResult deleteResult = mockMvc.perform(delete("/fairytales/" + fairytaleId)
                         .contentType(MediaType.APPLICATION_JSON))
@@ -371,14 +372,14 @@ public class FairytaleControllerTest {
         FairytaleResponse response = createFairytale(requestJson);
 
         // 동화 생성 확인
-        assertThat(response.id).isNotNull();
-        assertThat(response.title).isNotNull();
-        assertThat(response.content).isNotNull();
-        assertThat(response.childName).isEqualTo("소라");
+        assertThat(response.getId()).isNotNull();
+        assertThat(response.getTitle()).isNotNull();
+        assertThat(response.getContent()).isNotNull();
+        assertThat(response.getChildName()).isEqualTo("소라");
 
         // 이미지 URL 확인 (현재는 null)
-        System.out.println("생성된 동화 ID: " + response.id);
-        System.out.println("이미지 URL: " + response.imageUrl); // 현재는 null
+        System.out.println("생성된 동화 ID: " + response.getId());
+        System.out.println("이미지 URL: " + response.getImageUrl()); // 현재는 null
 
         System.out.println("통합 테스트 - 동화 생성 성공!");
     }
