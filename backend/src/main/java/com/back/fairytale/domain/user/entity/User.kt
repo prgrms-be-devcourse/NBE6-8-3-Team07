@@ -1,91 +1,61 @@
-package com.back.fairytale.domain.user.entity;
+package com.back.fairytale.domain.user.entity
 
-import com.back.fairytale.domain.bookmark.entity.BookMark;
-import com.back.fairytale.domain.fairytale.entity.Fairytale;
-import com.back.fairytale.domain.user.enums.IsDeleted;
-import com.back.fairytale.domain.user.enums.Role;
-import com.back.fairytale.global.entity.BaseEntity;
-import jakarta.persistence.*;
-import lombok.*;
+import com.back.fairytale.domain.bookmark.entity.BookMark
+import com.back.fairytale.domain.fairytale.entity.Fairytale
+import com.back.fairytale.domain.user.enums.IsDeleted
+import com.back.fairytale.domain.user.enums.Role
+import com.back.fairytale.global.entity.BaseEntity
+import jakarta.persistence.*
+import lombok.AccessLevel
+import lombok.AllArgsConstructor
+import lombok.Builder
+import lombok.NoArgsConstructor
 
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
-@Builder
 @Table(name = "users")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PROTECTED)
-public class User extends BaseEntity {
-
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+class User(
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null,
 
     @Column(length = 20, nullable = false)
-    private String name;
+    var name: String,
 
     @Column(length = 20, unique = true)
-    private String nickname;
+    var nickname: String,
 
     @Column(length = 50, nullable = false)
-    private String email;
+    var email: String,
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private IsDeleted isDeleted;
+    private var isDeleted: IsDeleted = IsDeleted.NOT_DELETED,
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Role role;
+    var role: Role = Role.USER,
 
     @Column(unique = true, nullable = false)
-    private String socialId;
+    val socialId: String,
 
     @Column(unique = true, columnDefinition = "TEXT")
-    private String refreshToken;
+    var refreshToken: String? = null,
+) : BaseEntity() {
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Fairytale> fairytales = new ArrayList<>();
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val fairytales: MutableList<Fairytale> = mutableListOf()
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<BookMark> favorites = new ArrayList<>();
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val favorites: MutableList<BookMark> = mutableListOf()
 
-    public User update(String name, String nickname, String email) {
-        this.name = name;
-        this.nickname = nickname;
-        this.email = email;
-        return this;
-    }
-    // fixme 일단 임시로 getter 생성
-    public Long getId() {
-        return id;
+    fun update(name: String, nickname: String, email: String) = apply {
+        this.name = name
+        this.nickname = nickname
+        this.email = email
     }
 
-    public String getSocialId() {
-        return socialId;
-    }
-
-    public String getRefreshToken() {
-        return refreshToken;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getNickname() {
-        return nickname;
-    }
-
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
-
-    public String getEmail() {
-        return email;
+    fun delete() {
+        this.isDeleted = IsDeleted.DELETED
     }
 }

@@ -1,48 +1,46 @@
-package com.back.fairytale.domain.user.controller;
+package com.back.fairytale.domain.user.controller
 
-import com.back.fairytale.domain.user.dto.TokenPairDto;
-import com.back.fairytale.domain.user.service.AuthService;
-import com.back.fairytale.global.security.CustomOAuth2User;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.back.fairytale.domain.user.service.AuthService
+import com.back.fairytale.global.security.CustomOAuth2User
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import lombok.RequiredArgsConstructor
+import lombok.extern.slf4j.Slf4j
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RestController
+import sun.jvm.hotspot.HelloWorld.e
 
 @RestController
-@RequiredArgsConstructor
-@Slf4j
-public class UserController {
-
-    private final AuthService authService;
+class UserController(
+    private val authService: AuthService
+) {
 
     @PostMapping("/reissue")
-    public ResponseEntity<?> reissue(HttpServletRequest request, HttpServletResponse response) {
-        try {
-            String refreshToken = authService.getRefreshTokenFromCookies(request.getCookies());
+    fun reissue(request: HttpServletRequest, response: HttpServletResponse): ResponseEntity<Any> {
+        return runCatching {
+            val refreshToken = authService.getRefreshTokenFromCookies(request.cookies)
 
-            TokenPairDto tokenPairDto = authService.reissueTokens(refreshToken);
+            val tokenPairDto = authService.reissueTokens(refreshToken)
 
-            response.addCookie(authService.createAccessTokenCookie(tokenPairDto.accessToken()));
-            response.addCookie(authService.createRefreshTokenCookie(tokenPairDto.refreshToken()));
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            log.warn("Refresh token invalid: {}", e.getMessage());
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            response.apply {
+                addCookie(authService.createAccessTokenCookie(tokenPairDto.accessToken))
+                addCookie(authService.createRefreshTokenCookie(tokenPairDto.refreshToken))
+            }
+            ResponseEntity<Any>(HttpStatus.OK)
+        }.getOrElse { e ->
+            ResponseEntity<Any>.status(HttpStatus.BAD_REQUEST).body(e.message)
         }
     }
 
     @GetMapping("/users/me")
-    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal CustomOAuth2User oAuth2User) {
-        if (oAuth2User == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("사용자 정보가 없습니다.");
-        }
-
-        return ResponseEntity.ok(null);
-    }
+    fun getCurrentUser(
+        @AuthenticationPrincipal oAuth2User: CustomOAuth2User?
+    ): ResponseEntity<Any> =
+        oAuth2User?.let {
+            ResponseEntity.ok(null)
+        } ?: ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("사용자 정보가 없습니다.")
 }
