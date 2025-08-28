@@ -5,6 +5,7 @@ import com.back.fairytale.domain.comments.dto.CommentsResponse;
 import com.back.fairytale.domain.comments.dto.CommentsUpdateRequest;
 import com.back.fairytale.domain.comments.entity.Comments;
 import com.back.fairytale.domain.comments.repository.CommentsRepository;
+import com.back.fairytale.domain.fairytale.entity.Fairytale;
 import com.back.fairytale.domain.fairytale.repository.FairytaleRepository;
 import com.back.fairytale.domain.user.entity.User;
 import com.back.fairytale.domain.user.repository.UserRepository;

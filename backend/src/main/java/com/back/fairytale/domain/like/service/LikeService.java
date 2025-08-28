@@ -1,5 +1,6 @@
 package com.back.fairytale.domain.like.service;
 
+import com.back.fairytale.domain.fairytale.entity.Fairytale;
 import com.back.fairytale.domain.fairytale.repository.FairytaleRepository;
 import com.back.fairytale.domain.like.dto.LikeDto;
 import com.back.fairytale.domain.like.entity.Like;
