@@ -1,15 +1,13 @@
-package com.back;
+package com.back
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.boot.autoconfigure.SpringBootApplication
+import org.springframework.boot.runApplication
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing
 
-@EnableJpaAuditing
 @SpringBootApplication
-public class BackendApplication {
+@EnableJpaAuditing
+class BackApplication
 
-    public static void main(String[] args) {
-        SpringApplication.run(BackendApplication.class, args);
-    }
-
+fun main(args: Array<String>) {
+    runApplication<BackApplication>(*args)
 }
