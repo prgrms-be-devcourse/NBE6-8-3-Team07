@@ -1,7 +1,6 @@
 package com.back.fairytale.domain.user.entity;
 
 import com.back.fairytale.domain.bookmark.entity.BookMark;
-import com.back.fairytale.domain.fairytale.entity.Fairytale;
 import com.back.fairytale.domain.user.enums.IsDeleted;
 import com.back.fairytale.domain.user.enums.Role;
 import com.back.fairytale.global.entity.BaseEntity;

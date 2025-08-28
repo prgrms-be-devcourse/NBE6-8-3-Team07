@@ -1,6 +1,5 @@
 package com.back.fairytale.domain.comments.entity;
 
-import com.back.fairytale.domain.fairytale.entity.Fairytale;
 import com.back.fairytale.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;

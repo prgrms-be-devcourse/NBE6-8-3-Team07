@@ -1,6 +1,5 @@
 package com.back.fairytale.domain.thoughts.service;
 
-import com.back.fairytale.domain.fairytale.entity.Fairytale;
 import com.back.fairytale.domain.fairytale.repository.FairytaleRepository;
 import com.back.fairytale.domain.thoughts.dto.ThoughtsRequest;
 import com.back.fairytale.domain.thoughts.dto.ThoughtsResponse;
