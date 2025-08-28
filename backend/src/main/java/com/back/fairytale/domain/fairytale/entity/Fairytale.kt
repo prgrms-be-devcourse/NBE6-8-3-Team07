@@ -93,7 +93,4 @@ class Fairytale(
         this.likeCount = (this.likeCount ?: 0L).coerceAtLeast(1L) - 1
     }
 
-    fun setPublic(isPublic: Boolean) {
-        this.isPublic = isPublic
-    }
 }
