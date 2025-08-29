@@ -69,6 +69,10 @@ dependencies {
     // Thumbnailator for image resizing
     implementation("net.coobird:thumbnailator:0.4.20")
     implementation("com.sksamuel.scrimage:scrimage-webp:4.0.39")
+
+    // Kotlin용 Mock 라이브러리
+    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("com.ninja-squad:springmockk:4.0.2") // MockK와 Spring 통합
 }
 
 kotlin {
