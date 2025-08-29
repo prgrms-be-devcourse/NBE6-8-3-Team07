@@ -2,7 +2,6 @@ package com.back.fairytale.global.security
 
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.oauth2.core.user.OAuth2User
-import java.util.Map
 
 class CustomOAuth2User(
     val id: Long,
