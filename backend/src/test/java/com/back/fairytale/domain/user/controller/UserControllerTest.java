@@ -51,13 +51,8 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
-        User testUser = User.builder()
-                .email("test@example.com")
-                .name("name")
-                .role(Role.USER)
-                .socialId("testSocialId")
-                .isDeleted(IsDeleted.NOT_DELETED)
-                .build();
+        User testUser = new User(null, "테스트유저", "유저", "test@example.com",
+                IsDeleted.NOT_DELETED, Role.USER, "testSocialId", null);
 
         User savedUser = userRepository.save(testUser);
         validRefreshToken = jwtProvider.createRefreshToken(savedUser.getId(), savedUser.getRole().getKey());
