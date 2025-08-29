@@ -46,6 +46,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.3.1")
 
     // Spring OAuth2 Client
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
