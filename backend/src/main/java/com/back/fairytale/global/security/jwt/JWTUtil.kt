@@ -10,14 +10,10 @@ import javax.crypto.spec.SecretKeySpec
 
 @Component
 class JWTUtil(@Value("\${spring.jwt.secret}") secret: String) {
-    private val secretKey: SecretKey
-
-    init {
-        secretKey = SecretKeySpec(
-            secret.toByteArray(StandardCharsets.UTF_8),
-            Jwts.SIG.HS256.key().build().algorithm
-        )
-    }
+    private val secretKey: SecretKey = SecretKeySpec(
+        secret.toByteArray(StandardCharsets.UTF_8),
+        Jwts.SIG.HS256.key().build().algorithm
+    )
 
     fun createJwt(userId: Long, role: String, expiredMs: Long, category: String): String {
         return Jwts.builder()

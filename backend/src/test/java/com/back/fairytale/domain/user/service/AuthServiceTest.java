@@ -45,17 +45,12 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        testUser = User.builder()
-                .email("test@example.com")
-                .name("테스트유저")
-                .role(Role.USER)
-                .socialId("testSocialId")
-                .isDeleted(IsDeleted.NOT_DELETED)
-                .build();
+        testUser = new User(null, "테스트유저", "유저", "test@example.com",
+                IsDeleted.NOT_DELETED, Role.USER, "testSocialId", null);
 
         User savedUser = userRepository.save(testUser);
 
-        validRefreshToken = jwtProvider.createRefreshToken(savedUser.getId(), savedUser.getRole().getKey());
+        validRefreshToken = jwtProvider.createRefreshToken(savedUser.getId(), savedUser.getRole().key);
         savedUser.setRefreshToken(validRefreshToken);
     }
 
@@ -69,8 +64,8 @@ class AuthServiceTest {
         // When
         String extractedRefreshToken = authService.getRefreshTokenFromCookies(cookies);
         TokenPairDto tokenPairDto = authService.reissueTokens(extractedRefreshToken);
-        String newAccessToken = tokenPairDto.accessToken();
-        String newRefreshToken = tokenPairDto.refreshToken();
+        String newAccessToken = tokenPairDto.accessToken;
+        String newRefreshToken = tokenPairDto.refreshToken;
 
         Cookie accessTokenCookie = authService.createAccessTokenCookie(newAccessToken);
         Cookie newRefreshTokenCookie = authService.createRefreshTokenCookie(newRefreshToken);
