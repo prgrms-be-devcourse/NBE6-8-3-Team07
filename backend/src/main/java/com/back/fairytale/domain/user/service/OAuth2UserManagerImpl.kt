@@ -18,16 +18,16 @@ class OAuth2UserManagerImpl(
 ) : OAuth2UserManager {
 
     override fun saveOrUpdateUser(userInfo: MutableMap<String, Any>): OAuth2UserInfo {
-        val socialId = userInfo["id"]?.toString() ?: throw IllegalArgumentException("Social ID is required")
-        val name = userInfo["name"]?.toString() ?: throw IllegalArgumentException("Name is required")
-        val nickname = userInfo["nickname"]?.toString() ?: throw IllegalArgumentException("Nickname is required")
-        val email = userInfo["email"]?.toString() ?: throw IllegalArgumentException("Email is required")
+        val socialId = userInfo["id"].toString()
+        val name = userInfo["name"].toString()
+        val nickname = userInfo["nickname"].toString()
+        val email = userInfo["email"].toString()
 
         val user = userRepository.findBySocialId(socialId)?.update(name, nickname, email) ?: createUser(socialId, name, nickname, email)
 
         val savedUser = userRepository.save(user)
         val newRefreshToken = jwtProvider.createRefreshToken(
-            userId = checkNotNull(savedUser.id) { "Saved user ID cannot be null" },
+            userId = savedUser.id!!,
             role = savedUser.role.key
         )
 
