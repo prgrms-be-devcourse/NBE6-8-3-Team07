@@ -16,7 +16,7 @@ data class CommentsResponse(
         fun from(comments: Comments): CommentsResponse {
             return CommentsResponse(
                 id = comments.id ?: throw IllegalArgumentException("댓글 ID는 필수입니다."),
-                fairytaleId = comments.fairytale.id,
+                fairytaleId = comments.fairytale.id ?: throw IllegalArgumentException("동화 ID는 필수입니다."),
                 nickname = comments.user.nickname,
                 content = comments.content,
                 createdAt = comments.createdAt,
