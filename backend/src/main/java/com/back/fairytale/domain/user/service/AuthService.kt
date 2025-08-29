@@ -1,77 +1,76 @@
-package com.back.fairytale.domain.user.service;
+package com.back.fairytale.domain.user.service
+
+import com.back.fairytale.domain.user.dto.TokenPairDto
+import com.back.fairytale.domain.user.entity.User
+import com.back.fairytale.domain.user.repository.UserRepository
+import com.back.fairytale.global.security.jwt.JWTProvider
+import com.back.fairytale.global.security.port.LogoutService
+import com.back.fairytale.global.security.port.UserTokenService
+import jakarta.servlet.http.Cookie
+import lombok.RequiredArgsConstructor
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.util.function.Supplier
 
 
-import com.back.fairytale.domain.user.dto.TokenPairDto;
-import com.back.fairytale.domain.user.entity.User;
-import com.back.fairytale.domain.user.repository.UserRepository;
-import com.back.fairytale.global.security.jwt.JWTProvider;
-import com.back.fairytale.global.security.port.LogoutService;
-import com.back.fairytale.global.security.port.UserTokenService;
-import jakarta.servlet.http.Cookie;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@RequiredArgsConstructor
 @Service
 @Transactional
-public class AuthService implements LogoutService, UserTokenService {
+class AuthService(
+    private val jwtProvider: JWTProvider,
+    private val userRepository: UserRepository
+) : LogoutService, UserTokenService {
 
-    private final JWTProvider jwtProvider;
-    private final UserRepository userRepository;
 
-    public String getRefreshTokenFromCookies(Cookie[] cookies) {
-        return jwtProvider.extractRefreshToken(cookies);
+    fun getRefreshTokenFromCookies(cookies: Array<Cookie>?): String? {
+        return jwtProvider.extractRefreshToken(cookies)
     }
 
-    public TokenPairDto reissueTokens(String refreshToken) {
-        User user = validateRefreshTokenAndGetUser(refreshToken);
+    fun reissueTokens(refreshToken: String?): TokenPairDto {
+        val user = validateRefreshTokenAndGetUser(refreshToken)
 
-        String newAccessToken = jwtProvider.createAccessToken(user.getId(), user.getRole().getKey());
-        String newRefreshToken = jwtProvider.createRefreshToken(user.getId(), user.getRole().getKey());
+        val newAccessToken = jwtProvider.createAccessToken(user.id!!, user.role.key)
+        val newRefreshToken = jwtProvider.createRefreshToken(user.id!!, user.role.key)
 
-        user.setRefreshToken(newRefreshToken);
+        user.refreshToken = newRefreshToken
 
-        return TokenPairDto.of(newAccessToken, newRefreshToken);
+        return TokenPairDto(newAccessToken, newRefreshToken)
     }
 
-    public Cookie createAccessTokenCookie(String token) {
-        return jwtProvider.wrapAccessTokenToCookie(token);
+    fun createAccessTokenCookie(token: String): Cookie {
+        return jwtProvider.wrapAccessTokenToCookie(token)
     }
 
-    public Cookie createRefreshTokenCookie(String refreshToken) {
-        return jwtProvider.wrapRefreshTokenToCookie(refreshToken);
+    fun createRefreshTokenCookie(refreshToken: String): Cookie {
+        return jwtProvider.wrapRefreshTokenToCookie(refreshToken)
     }
 
-    private User validateRefreshTokenAndGetUser(String refreshToken) {
+    private fun validateRefreshTokenAndGetUser(refreshToken: String?): User {
         if (!jwtProvider.validateRefreshToken(refreshToken)) {
-            throw new IllegalArgumentException("Refresh token이 유효하지 않습니다.");
+            throw IllegalArgumentException("Refresh token이 유효하지 않습니다.")
         }
 
-        Long userId = jwtProvider.getUserIdFromRefreshToken(refreshToken);
+        val userId = jwtProvider.getUserIdFromRefreshToken(refreshToken)
+        val user = findUserById(userId)
 
-        User user = findUserById(userId);
-
-        if (!refreshToken.equals(user.getRefreshToken())) {
-            throw new IllegalArgumentException("Refresh Token이 일치하지 않습니다.");
+        if (refreshToken != user.refreshToken) {
+            throw IllegalArgumentException("Refresh Token이 일치하지 않습니다.")
         }
 
-        return user;
+        return user
     }
 
-    @Override
-    public void logout(long userId) {
-        User findUser = findUserById(userId);
-        findUser.setRefreshToken(null);
+    override fun logout(userId: Long) {
+        val findUser = findUserById(userId)
+        findUser.refreshToken = null
     }
 
-    @Override
-    public String getUserToken(long userId) {
-        return findUserById(userId).getRefreshToken();
+    override fun getUserToken(userId: Long): String {
+        return findUserById(userId).refreshToken!!
     }
 
-    private User findUserById(Long userId) {
+    private fun findUserById(userId: Long): User {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 유저가 존재하지 않습니다. " + userId));
+            .orElseThrow { IllegalArgumentException("해당 유저가 존재하지 않습니다. $userId") }
     }
+
 }

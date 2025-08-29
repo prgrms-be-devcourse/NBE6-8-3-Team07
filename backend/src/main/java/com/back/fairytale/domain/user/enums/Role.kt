@@ -1,16 +1,6 @@
-package com.back.fairytale.domain.user.enums;
+package com.back.fairytale.domain.user.enums
 
-import lombok.RequiredArgsConstructor;
-
-@RequiredArgsConstructor
-public enum Role {
+enum class Role(val key: String, val value: String) {
     ADMIN("ROLE_ADMIN", "관리자"),
-    USER("ROLE_USER", "사용자");
-
-    private final String key;
-    private final String value;
-
-    public String getKey() {
-        return key;
-    }
+    USER("ROLE_USER", "사용자")
 }

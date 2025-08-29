@@ -4,15 +4,12 @@ import com.back.fairytale.domain.user.service.AuthService
 import com.back.fairytale.global.security.CustomOAuth2User
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import lombok.RequiredArgsConstructor
-import lombok.extern.slf4j.Slf4j
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RestController
-import sun.jvm.hotspot.HelloWorld.e
 
 @RestController
 class UserController(
@@ -30,9 +27,9 @@ class UserController(
                 addCookie(authService.createAccessTokenCookie(tokenPairDto.accessToken))
                 addCookie(authService.createRefreshTokenCookie(tokenPairDto.refreshToken))
             }
-            ResponseEntity<Any>(HttpStatus.OK)
+            ResponseEntity.ok().build<Any>()
         }.getOrElse { e ->
-            ResponseEntity<Any>.status(HttpStatus.BAD_REQUEST).body(e.message)
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.message)
         }
     }
 

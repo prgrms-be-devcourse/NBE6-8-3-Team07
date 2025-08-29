@@ -54,7 +54,7 @@ class JWTProvider(private val jwtUtil: JWTUtil) {
         return validateToken(accessToken, TokenType.ACCESS)
     }
 
-    fun validateRefreshToken(refreshToken: String): Boolean {
+    fun validateRefreshToken(refreshToken: String?): Boolean {
         return validateToken(refreshToken, TokenType.REFRESH)
     }
 
@@ -62,7 +62,7 @@ class JWTProvider(private val jwtUtil: JWTUtil) {
         return getUserIdFromToken(accessToken, TokenType.ACCESS)
     }
 
-    fun getUserIdFromRefreshToken(refreshToken: String): Long {
+    fun getUserIdFromRefreshToken(refreshToken: String?): Long {
         return getUserIdFromToken(refreshToken, TokenType.REFRESH)
     }
 

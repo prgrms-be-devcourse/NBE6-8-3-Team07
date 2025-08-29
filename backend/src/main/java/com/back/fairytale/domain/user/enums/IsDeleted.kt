@@ -1,5 +1,5 @@
-package com.back.fairytale.domain.user.enums;
+package com.back.fairytale.domain.user.enums
 
-public enum IsDeleted {
+enum class IsDeleted {
     DELETED, NOT_DELETED
 }
