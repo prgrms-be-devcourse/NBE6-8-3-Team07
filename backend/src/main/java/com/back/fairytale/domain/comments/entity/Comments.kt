@@ -43,7 +43,7 @@ class Comments (
         validateHierarchy()
     }
 
-    // 계층 구조 유효성 검사
+    // 계층 구조 유효성 검사 (자식댓글은 자식댓글을 가질 수 없음)
     private fun validateHierarchy() {
         val parentComment = parent ?: return
 

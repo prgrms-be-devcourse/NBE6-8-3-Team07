@@ -11,9 +11,6 @@ import org.springframework.data.repository.query.Param
 
 
 interface CommentsRepository : JpaRepository<Comments, Long> {
-    // 특정 동화(fairytale)에 대한 comments를 조회하는 method
-    fun findByFairytale(fairytale: Fairytale, pageable: Pageable): Page<Comments>
-
     // 특정 동화(fairytale)에 대한 댓글을 계층 구조로 페이징하여 조회
     @EntityGraph(attributePaths = ["user", "fairytale"]) // N+1 문제 해결을 위한 EntityGraph 사용
     @Query ("""

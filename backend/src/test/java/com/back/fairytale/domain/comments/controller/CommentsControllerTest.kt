@@ -101,7 +101,11 @@ class CommentsControllerTest {
             nickname = testNickname,
             content = "테스트 댓글 내용",
             createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
+            updatedAt = LocalDateTime.now(),
+            parentId = null,
+            depth = 0,
+            hasChildren = false,
+            childrenCount = 0
         )
 
         // 댓글 수정 요청 데이터
@@ -144,6 +148,10 @@ class CommentsControllerTest {
                 .andExpect(jsonPath("$.fairytaleId").value(testFairytaleId))
                 .andExpect(jsonPath("$.nickname").value(testNickname))
                 .andExpect(jsonPath("$.content").value("테스트 댓글 내용"))
+                .andExpect(jsonPath("$.parentId").isEmpty)
+                .andExpect(jsonPath("$.depth").value(0))
+                .andExpect(jsonPath("$.hasChildren").value(false))
+                .andExpect(jsonPath("$.childrenCount").value(0))
 
             // commentsService.createComments 메서드가 정확히 한 번 호출되었는지 검증
             verify { commentsService.createComments(commentsRequest, testUserId) }
@@ -177,6 +185,87 @@ class CommentsControllerTest {
 
             // commentsService.createComments 메서드가 정확히 한 번 호출되었는지 검증
             verify { commentsService.createComments(any(), any()) }
+        }
+
+        @Test
+        @DisplayName("POST /api/fairytales/{fairytaleId}/comments - 대댓글 작성 성공")
+        fun createReplySuccess() {
+            // 대댓글 요청 데이터 (parentId 포함)
+            val replyRequest = CommentsRequest(
+                fairytaleId = testFairytaleId,
+                content = "대댓글 내용입니다",
+                parentId = 1L
+            )
+
+            // 대댓글 응답 데이터
+            val replyResponse = CommentsResponse(
+                id = 2L,
+                fairytaleId = testFairytaleId,
+                nickname = testNickname,
+                content = "대댓글 내용입니다",
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now(),
+                parentId = 1L,
+                depth = 1,
+                hasChildren = false,
+                childrenCount = 0
+            )
+
+            every { commentsService.createComments(replyRequest, testUserId) } returns replyResponse
+
+            mockMvc.perform(
+                post("/api/fairytales/$testFairytaleId/comments")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(replyRequest))
+                    .with { request ->
+                        val auth = OAuth2AuthenticationToken(
+                            mockCustomOAuth2User,
+                            listOf(SimpleGrantedAuthority("ROLE_$testUserRole")),
+                            "oauth2"
+                        )
+                        request.userPrincipal = auth
+                        SecurityContextHolder.getContext().authentication = auth
+                        request
+                    }
+                    .with(csrf())
+            )
+                .andExpect(status().isCreated)
+                .andExpect(header().string("Location", "/api/fairytales/$testFairytaleId/comments/2"))
+                .andExpect(jsonPath("$.id").value(2L))
+                .andExpect(jsonPath("$.parentId").value(1L))
+                .andExpect(jsonPath("$.depth").value(1))
+                .andExpect(jsonPath("$.hasChildren").value(false))
+                .andExpect(jsonPath("$.content").value("대댓글 내용입니다"))
+
+            verify { commentsService.createComments(replyRequest, testUserId) }
+        }
+
+        @Test
+        @DisplayName("POST /api/fairytales/{fairytaleId}/comments - fairytaleId 불일치 실패")
+        fun createCommentsFailureFairytaleIdMismatch() {
+            // URL의 fairytaleId와 요청 body의 fairytaleId가 다른 경우
+            val mismatchRequest = commentsRequest.copy(fairytaleId = 999L)
+
+            mockMvc.perform(
+                post("/api/fairytales/$testFairytaleId/comments")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(mismatchRequest))
+                    .with { request ->
+                        val auth = OAuth2AuthenticationToken(
+                            mockCustomOAuth2User,
+                            listOf(SimpleGrantedAuthority("ROLE_$testUserRole")),
+                            "oauth2"
+                        )
+                        request.userPrincipal = auth
+                        SecurityContextHolder.getContext().authentication = auth
+                        request
+                    }
+                    .with(csrf())
+            )
+                .andExpect(status().isInternalServerError) // IllegalArgumentException → 500
+
+            // Service 메서드는 호출되지 않아야 함 (Controller에서 검증 실패)
+            verify(exactly = 0) { commentsService.createComments(any(), any()) }
         }
     }
 
@@ -247,6 +336,92 @@ class CommentsControllerTest {
 
             // 메서드 호출 검증
             verify { commentsService.getCommentsByFairytale(any(), any()) }
+        }
+
+        @Test
+        @DisplayName("GET /api/fairytales/{fairytaleId}/comments - 계층 구조 댓글 조회 성공")
+        fun getHierarchicalCommentsSuccess() {
+            val pageable = PageRequest.of(0, 10)
+            
+            // 부모 댓글과 대댓글이 포함된 응답 데이터
+            val parentComment = CommentsResponse(
+                id = 1L,
+                fairytaleId = testFairytaleId,
+                nickname = testNickname,
+                content = "부모 댓글",
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now(),
+                parentId = null,
+                depth = 0,
+                hasChildren = true,
+                childrenCount = 2
+            )
+            
+            val replyComment1 = CommentsResponse(
+                id = 2L,
+                fairytaleId = testFairytaleId,
+                nickname = "reply_user",
+                content = "첫번째 대댓글",
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now(),
+                parentId = 1L,
+                depth = 1,
+                hasChildren = false,
+                childrenCount = 0
+            )
+            
+            val replyComment2 = CommentsResponse(
+                id = 3L,
+                fairytaleId = testFairytaleId,
+                nickname = "reply_user2",
+                content = "두번째 대댓글",
+                createdAt = LocalDateTime.now(),
+                updatedAt = LocalDateTime.now(),
+                parentId = 1L,
+                depth = 1,
+                hasChildren = false,
+                childrenCount = 0
+            )
+            
+            val commentsPage = PageImpl(listOf(parentComment, replyComment1, replyComment2), pageable, 3)
+            every { commentsService.getCommentsByFairytale(testFairytaleId, any()) } returns commentsPage
+
+            mockMvc.perform(
+                get("/api/fairytales/$testFairytaleId/comments")
+                    .param("page", "0")
+                    .param("size", "10")
+                    .with { request ->
+                        val auth = OAuth2AuthenticationToken(
+                            mockCustomOAuth2User,
+                            listOf(SimpleGrantedAuthority("ROLE_$testUserRole")),
+                            "oauth2"
+                        )
+                        request.userPrincipal = auth
+                        SecurityContextHolder.getContext().authentication = auth
+                        request
+                    }
+            )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.content").isArray)
+                .andExpect(jsonPath("$.content.length()").value(3))
+                // 부모 댓글 검증
+                .andExpect(jsonPath("$.content[0].id").value(1L))
+                .andExpect(jsonPath("$.content[0].parentId").isEmpty)
+                .andExpect(jsonPath("$.content[0].depth").value(0))
+                .andExpect(jsonPath("$.content[0].hasChildren").value(true))
+                .andExpect(jsonPath("$.content[0].childrenCount").value(2))
+                // 첫 번째 대댓글 검증
+                .andExpect(jsonPath("$.content[1].id").value(2L))
+                .andExpect(jsonPath("$.content[1].parentId").value(1L))
+                .andExpect(jsonPath("$.content[1].depth").value(1))
+                .andExpect(jsonPath("$.content[1].hasChildren").value(false))
+                .andExpect(jsonPath("$.content[1].childrenCount").value(0))
+                // 두 번째 대댓글 검증
+                .andExpect(jsonPath("$.content[2].id").value(3L))
+                .andExpect(jsonPath("$.content[2].parentId").value(1L))
+                .andExpect(jsonPath("$.content[2].depth").value(1))
+
+            verify { commentsService.getCommentsByFairytale(testFairytaleId, any()) }
         }
     }
 
