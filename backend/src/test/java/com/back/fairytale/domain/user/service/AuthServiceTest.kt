@@ -1,143 +1,150 @@
-package com.back.fairytale.domain.user.service;
+package com.back.fairytale.domain.user.service
 
-import com.back.fairytale.domain.user.dto.TokenPairDto;
-import com.back.fairytale.domain.user.entity.User;
-import com.back.fairytale.domain.user.enums.IsDeleted;
-import com.back.fairytale.domain.user.enums.Role;
-import com.back.fairytale.domain.user.repository.UserRepository;
-import com.back.fairytale.global.security.jwt.JWTProvider;
-import com.back.fairytale.global.util.impl.GoogleCloudStorage;
-import com.google.cloud.storage.Storage;
-import jakarta.servlet.http.Cookie;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.transaction.annotation.Transactional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import com.back.fairytale.domain.user.entity.User
+import com.back.fairytale.domain.user.enums.IsDeleted
+import com.back.fairytale.domain.user.enums.Role
+import com.back.fairytale.domain.user.repository.UserRepository
+import com.back.fairytale.global.security.jwt.JWTProvider
+import com.back.fairytale.global.util.impl.GoogleCloudStorage
+import com.google.cloud.storage.Storage
+import jakarta.servlet.http.Cookie
+import org.assertj.core.api.Assertions
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.transaction.annotation.Transactional
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
 class AuthServiceTest {
     @Autowired
-    private AuthService authService;
+    private lateinit var authService: AuthService
 
     @Autowired
-    private UserRepository userRepository;
+    private lateinit var userRepository: UserRepository
 
     @Autowired
-    private JWTProvider jwtProvider;
+    private lateinit var jwtProvider: JWTProvider
 
-    private User testUser;
-    private String validRefreshToken;
-
-    @MockitoBean
-    private GoogleCloudStorage googleCloudStorage;
+    private lateinit var testUser: User
+    private lateinit var validRefreshToken: String
 
     @MockitoBean
-    private Storage storage;
+    private lateinit var googleCloudStorage: GoogleCloudStorage
+
+    @MockitoBean
+    private lateinit var storage: Storage
 
     @BeforeEach
-    void setUp() {
-        testUser = new User(null, "테스트유저", "유저", "test@example.com",
-                IsDeleted.NOT_DELETED, Role.USER, "testSocialId", null);
+    fun setUp() {
+        testUser = User(
+            email = "test@example.com",
+            name = "name",
+            role = Role.USER,
+            socialId = "testSocialId",
+            nickname = "testNickname",
+            isDeleted = IsDeleted.NOT_DELETED
+        )
 
-        User savedUser = userRepository.save(testUser);
+        val savedUser = userRepository.save(testUser)
 
-        validRefreshToken = jwtProvider.createRefreshToken(savedUser.getId(), savedUser.getRole().key);
-        savedUser.setRefreshToken(validRefreshToken);
+        validRefreshToken = jwtProvider.createRefreshToken(savedUser.id!!, savedUser.role.key)
+        savedUser.refreshToken = validRefreshToken
     }
 
     @Test
     @DisplayName("토큰 재발급이 성공적으로 이루어진다.")
-    void reissueToken() {
+    fun reissueToken() {
         // Given
-        Cookie refreshTokenCookie = new Cookie("refresh", validRefreshToken);
-        Cookie[] cookies = {refreshTokenCookie};
+        val refreshTokenCookie = Cookie("refresh", validRefreshToken)
+        val cookies = arrayOf(refreshTokenCookie)
 
         // When
-        String extractedRefreshToken = authService.getRefreshTokenFromCookies(cookies);
-        TokenPairDto tokenPairDto = authService.reissueTokens(extractedRefreshToken);
-        String newAccessToken = tokenPairDto.accessToken;
-        String newRefreshToken = tokenPairDto.refreshToken;
+        val extractedRefreshToken = authService.getRefreshTokenFromCookies(cookies)
+        val tokenPairDto = authService.reissueTokens(extractedRefreshToken)
+        val newAccessToken = tokenPairDto.accessToken
+        val newRefreshToken = tokenPairDto.refreshToken
 
-        Cookie accessTokenCookie = authService.createAccessTokenCookie(newAccessToken);
-        Cookie newRefreshTokenCookie = authService.createRefreshTokenCookie(newRefreshToken);
+        val accessTokenCookie = authService.createAccessTokenCookie(newAccessToken)
+        val newRefreshTokenCookie = authService.createRefreshTokenCookie(newRefreshToken)
 
         // Then
-        assertThat(jwtProvider.validateAccessToken(newAccessToken)).isTrue();
-        assertThat(jwtProvider.validateRefreshToken(newRefreshToken)).isTrue();
-        assertThat(newRefreshToken).isNotEqualTo(validRefreshToken);
-        assertThat(accessTokenCookie.getValue()).isEqualTo(newAccessToken);
-        assertThat(newRefreshTokenCookie.getValue()).isEqualTo(newRefreshToken);
+        Assertions.assertThat(jwtProvider.validateAccessToken(newAccessToken)).isTrue()
+        Assertions.assertThat(jwtProvider.validateRefreshToken(newRefreshToken)).isTrue()
+        Assertions.assertThat(newRefreshToken).isNotEqualTo(validRefreshToken)
+        Assertions.assertThat(accessTokenCookie.value).isEqualTo(newAccessToken)
+        Assertions.assertThat(newRefreshTokenCookie.value).isEqualTo(newRefreshToken)
 
-        User updatedUser = userRepository.findById(testUser.getId()).orElseThrow();
-        assertThat(updatedUser.getRefreshToken()).isEqualTo(newRefreshToken);
+        val updatedUser = userRepository.findById(testUser.id!!).orElseThrow()
+        Assertions.assertThat(updatedUser.refreshToken).isEqualTo(newRefreshToken)
     }
 
     @Test
     @DisplayName("유효하지 않은 리프레시 토큰으로 재발급이 실패한다.")
-    void reissueToken_InvalidToken() {
+    fun reissueToken_InvalidToken() {
         // Given
-        String invalidRefreshToken = "invalid.refresh.token";
+        val invalidRefreshToken = "invalid.refresh.token"
 
         // When & Then
-        assertThatThrownBy(() -> authService.reissueTokens(invalidRefreshToken))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Refresh token이 유효하지 않습니다.");
+        Assertions.assertThatThrownBy { authService.reissueTokens(invalidRefreshToken) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessage("Refresh token이 유효하지 않습니다.")
     }
 
     @Test
     @DisplayName("존재하지 않는 사용자로 재발급 시도 시 실패한다.")
-    void reissueToken_NonExistentUser() {
+    fun reissueToken_NonExistentUser() {
         // Given
-        Long nonExistentUserId = 999L;
-        String tokenForNonExistentUser = jwtProvider.createRefreshToken(nonExistentUserId, "USER");
+        val nonExistentUserId = 999L
+        val tokenForNonExistentUser = jwtProvider.createRefreshToken(nonExistentUserId, "USER")
 
         // When & Then
-        assertThatThrownBy(() -> authService.reissueTokens(tokenForNonExistentUser))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("해당 유저가 존재하지 않습니다" );
+        Assertions.assertThatThrownBy {
+            authService.reissueTokens(
+                tokenForNonExistentUser
+            )
+        }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("해당 유저가 존재하지 않습니다")
     }
 
     @Test
     @DisplayName("리프레시 토큰이 다를 경우 재발급이 실패한다.")
-    void reissueAccessToken_TokenMismatch() {
+    fun reissueAccessToken_TokenMismatch() {
         // Given
-        TokenPairDto tokenPairDto = authService.reissueTokens(validRefreshToken);
+        authService.reissueTokens(validRefreshToken)
 
         // When & Then - 원래 토큰으로 재발급 시도
-        assertThatThrownBy(() -> authService.reissueTokens(validRefreshToken))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Refresh Token이 일치하지 않습니다.");
+        Assertions.assertThatThrownBy { authService.reissueTokens(validRefreshToken) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("Refresh Token이 일치하지 않습니다.")
     }
 
     @Test
     @DisplayName("로그아웃이 성공적으로 이루어진다.")
-    void logout() {
+    fun logout() {
         // When
-        authService.logout(testUser.getId());
+        authService.logout(testUser.id!!)
 
         // Then
-        User logOutUser = userRepository.findById(testUser.getId()).orElseThrow();
-        assertThat(logOutUser.getRefreshToken()).isNull();
+        val logOutUser = userRepository.findById(testUser.id!!).orElseThrow()
+        Assertions.assertThat(logOutUser.refreshToken).isNull()
     }
 
     @Test
     @DisplayName("존재하지 않는 사용자 로그아웃 시도 시 실패한다.")
-    void logout_NonExistentUser() {
+    fun logout_NonExistentUser() {
         // Given
-        Long nonExistentUserId = 999L;
+        val nonExistentUserId = 999L
 
         // When & Then
-        assertThatThrownBy(() -> authService.logout(nonExistentUserId))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("해당 유저가 존재하지 않습니다");
+        Assertions.assertThatThrownBy { authService.logout(nonExistentUserId) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessageContaining("해당 유저가 존재하지 않습니다")
     }
 }
