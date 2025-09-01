@@ -7,24 +7,22 @@ import com.back.fairytale.global.security.CustomOAuth2User
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
-import io.mockk.mockk
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration
-import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
-import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.FilterType
 import org.springframework.http.MediaType
 import org.springframework.security.authentication.TestingAuthenticationToken
 import org.springframework.security.core.Authentication
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -46,12 +44,6 @@ import java.time.LocalDateTime
     ]
 )
 @ActiveProfiles("test")
-@EnableAutoConfiguration(
-    exclude = [
-        JpaRepositoriesAutoConfiguration::class,
-        HibernateJpaAutoConfiguration::class
-    ]
-)
 class FairytaleControllerTest {
 
     @Autowired
@@ -70,10 +62,16 @@ class FairytaleControllerTest {
 
     @BeforeEach
     fun setUp() {
-        // MockK를 사용한 CustomOAuth2User 모킹
-        val mockCustomOAuth2User = mockk<CustomOAuth2User>()
-        every { mockCustomOAuth2User.id } returns 1L
-        authentication = TestingAuthenticationToken(mockCustomOAuth2User, null)
+        val principal = CustomOAuth2User(
+            id = 1L,
+            username = "tester",
+            role = "ROLE_USER"
+        )
+        authentication = TestingAuthenticationToken(
+            principal,
+            null,
+            listOf(SimpleGrantedAuthority("ROLE_USER"))
+        ).apply { isAuthenticated = true }
 
         // 유효한 요청 데이터 설정
         validRequest = FairytaleCreateRequest(
@@ -115,6 +113,7 @@ class FairytaleControllerTest {
         val result = mockMvc.perform(
             post("/fairytales")
                 .with(authentication(authentication))
+                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(validRequest))
         )
