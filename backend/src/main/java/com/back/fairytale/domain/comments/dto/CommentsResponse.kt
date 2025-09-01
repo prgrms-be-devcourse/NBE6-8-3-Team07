@@ -31,5 +31,21 @@ data class CommentsResponse(
                 childrenCount = comments.children.size,
             )
         }
+
+        @JvmStatic
+        fun from(comments: Comments, childrenCount: Long): CommentsResponse { // childrenCount를 외부에서 주입위한 오버로딩
+            return CommentsResponse(
+                id = comments.id ?: throw IllegalArgumentException("댓글 ID는 필수입니다."),
+                fairytaleId = comments.fairytale.id ?: throw IllegalArgumentException("동화 ID는 필수입니다."),
+                nickname = comments.user.nickname,
+                content = comments.content,
+                createdAt = comments.createdAt,
+                updatedAt = comments.updatedAt,
+                parentId = comments.parent?.id,
+                depth = comments.getDepth(),
+                hasChildren = comments.hasChildren(),
+                childrenCount = childrenCount.toInt() // 외부에서 계산된 값 사용
+            )
+        }
     }
 }
