@@ -1,16 +1,57 @@
 package com.back.fairytale.domain.fairytale.controller
 
+import com.back.fairytale.domain.fairytale.dto.FairytaleCreateRequest
+import com.back.fairytale.domain.fairytale.dto.FairytaleResponse
+import com.back.fairytale.domain.fairytale.service.FairytaleService
+import com.back.fairytale.global.security.CustomOAuth2User
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
-import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.context.annotation.ComponentScan
+import org.springframework.context.annotation.FilterType
+import org.springframework.http.MediaType
+import org.springframework.security.authentication.TestingAuthenticationToken
+import org.springframework.security.core.Authentication
+import org.springframework.security.test.context.support.WithMockUser
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.LocalDateTime
 
-
-@WebMvcTest(FairytaleController::class)
+@WebMvcTest(
+    controllers = [FairytaleController::class],
+    excludeFilters = [
+        ComponentScan.Filter(
+            type = FilterType.ASSIGNABLE_TYPE,
+            classes = [
+                com.back.fairytale.global.security.SecurityConfig::class,
+                com.back.fairytale.global.security.jwt.JwtAuthenticationFilter::class
+            ]
+        )
+    ]
+)
+@ActiveProfiles("test")
+@EnableAutoConfiguration(
+    exclude = [
+        JpaRepositoriesAutoConfiguration::class,
+        HibernateJpaAutoConfiguration::class
+    ]
+)
 class FairytaleControllerTest {
 
     @Autowired
@@ -19,18 +60,20 @@ class FairytaleControllerTest {
     @Autowired
     private lateinit var objectMapper: ObjectMapper
 
-    @MockBean
+    // MockK 기반의 MockkBean 사용
+    @MockkBean
     private lateinit var fairytaleService: FairytaleService
 
-    private lateinit var mockCustomOAuth2User: CustomOAuth2User
+    private lateinit var authentication: Authentication
     private lateinit var validRequest: FairytaleCreateRequest
     private lateinit var expectedResponse: FairytaleResponse
 
     @BeforeEach
     fun setUp() {
-        // Mock CustomOAuth2User 설정
-        mockCustomOAuth2User = mock(CustomOAuth2User::class.java)
-        given(mockCustomOAuth2User.id).willReturn(1L)
+        // MockK를 사용한 CustomOAuth2User 모킹
+        val mockCustomOAuth2User = mockk<CustomOAuth2User>()
+        every { mockCustomOAuth2User.id } returns 1L
+        authentication = TestingAuthenticationToken(mockCustomOAuth2User, null)
 
         // 유효한 요청 데이터 설정
         validRequest = FairytaleCreateRequest(
@@ -63,14 +106,15 @@ class FairytaleControllerTest {
     @DisplayName("동화 생성 성공")
     @WithMockUser
     fun t1() {
-        // given
-        given(fairytaleService.createFairytale(any(FairytaleCreateRequest::class.java), eq(1L)))
-            .willReturn(expectedResponse)
+        // given - MockK의 자연스러운 DSL 사용
+        every {
+            fairytaleService.createFairytale(any<FairytaleCreateRequest>(), eq(1L))
+        } returns expectedResponse
 
         // when & then
         val result = mockMvc.perform(
             post("/fairytales")
-                .with(authentication(mockCustomOAuth2User))
+                .with(authentication(authentication))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(validRequest))
         )
@@ -97,7 +141,9 @@ class FairytaleControllerTest {
         assertThat(actualResponse.userId).isEqualTo(expectedResponse.userId)
         assertThat(actualResponse.createdAt).isEqualTo(expectedResponse.createdAt)
 
-        // 서비스 메서드 호출 검증
-        verify(fairytaleService, times(1)).createFairytale(any(FairytaleCreateRequest::class.java), eq(1L))
+        // MockK를 사용한 호출 검증 - 더 읽기 쉬운 문법
+        verify(exactly = 1) {
+            fairytaleService.createFairytale(any<FairytaleCreateRequest>(), eq(1L))
+        }
     }
 }
