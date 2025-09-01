@@ -1,5 +1,6 @@
 package com.back.fairytale.global.security.jwt
 
+import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -27,12 +28,18 @@ class JWTUtil(@Value("\${spring.jwt.secret}") secret: String) {
             .compact()
     }
 
-    fun validateToken(token: String): Boolean = runCatching {
-        Jwts.parser()
-            .verifyWith(secretKey)
-            .build()
-            .parseSignedClaims(token)
-    }.isSuccess
+    fun validateToken(token: String?): Boolean {
+        if (token.isNullOrBlank()) return false
+        return try {
+            Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+            true
+        } catch (e: JwtException) {
+            false
+        }
+    }
 
     fun getUserId(token: String): Long {
         val payload = Jwts.parser()
