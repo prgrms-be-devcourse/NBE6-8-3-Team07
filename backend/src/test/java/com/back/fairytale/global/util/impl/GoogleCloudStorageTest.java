@@ -44,7 +44,7 @@ public class GoogleCloudStorageTest {
         }
         return files;
     }
-    
+
     @Test
     @DisplayName("4K 이미지 업로드 (3개)")
     void performanceTest_10Images() throws IOException {
