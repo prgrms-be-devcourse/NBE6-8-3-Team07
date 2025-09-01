@@ -53,7 +53,7 @@ class SecurityConfig(
                     // 나머지 모든 요청은 인증 필요
                     .anyRequest().authenticated()
             }
-            .csrf { csrf -> csrf.disable() }
+            //.csrf { csrf -> csrf.disable() }
             .formLogin { form -> form.disable() }
             .httpBasic { basic -> basic.disable() }
             .sessionManagement { session ->
