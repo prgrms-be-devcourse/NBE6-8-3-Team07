@@ -24,12 +24,41 @@ class Comments (
     @Column(length = 500, nullable = false)
     var content: String,
 
+    // 대댓글 기능용 부모 댓글
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id", nullable = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    val parent: Comments? = null,
+
 ) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
 
-    // Comments 수정
+    // 양방향 관계 : 자식 댓글
+    @OneToMany(mappedBy = "parent", fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
+    val children: MutableList<Comments> = mutableListOf()
+
+    init {
+        validateHierarchy()
+    }
+
+    // 계층 구조 유효성 검사
+    private fun validateHierarchy() {
+        val parentComment = parent ?: return
+
+        if (parentComment.parent != null) {
+            throw IllegalArgumentException("대댓글에는 대댓글을 달 수 없습니다.")
+        }
+    }
+
+    // 편의 메서드들
+    fun isReply(): Boolean = parent != null
+    fun isParentComment(): Boolean = parent == null
+    fun hasChildren(): Boolean = children.isNotEmpty()
+    fun getDepth(): Int = if (parent == null) 0 else 1
+
+        // Comments 수정
     fun updateContent(content: String) {
         this.content = content
     }
