@@ -5,7 +5,7 @@ import org.springframework.boot.runApplication
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing
 
 @SpringBootApplication
-@EnableJpaAuditing
+//@EnableJpaAuditing 설정 파일 jpaConfig.kt로 이동
 class BackendApplication
 
 fun main(args: Array<String>) {

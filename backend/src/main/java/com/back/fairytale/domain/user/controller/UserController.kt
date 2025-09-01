@@ -39,5 +39,6 @@ class UserController(
     ): ResponseEntity<Any> =
         oAuth2User?.let {
             ResponseEntity.ok(null)
-        } ?: ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("사용자 정보가 없습니다.")
+        } ?: ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(mapOf("message" to "인증이 필요한 서비스입니다."))
 }

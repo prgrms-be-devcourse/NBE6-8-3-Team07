@@ -87,7 +87,7 @@ class JWTProvider(private val jwtUtil: JWTUtil) {
 
     private fun validateToken(token: String?, tokenType: TokenType): Boolean {
         return token?.let {
-            jwtUtil.validateToken(it) && tokenType.tokenName == jwtUtil.getCategory(it)
+            jwtUtil.validateToken(it) && tokenType.name == jwtUtil.getCategory(it)
         } ?: false
     }
 
