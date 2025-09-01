@@ -2,11 +2,13 @@ package com.back.fairytale.global.security.jwt
 
 import com.back.fairytale.domain.user.entity.User
 import com.back.fairytale.domain.user.repository.UserRepository
+import com.back.fairytale.global.security.CorsProperties
 import com.back.fairytale.global.security.CustomOAuth2User
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
+import org.springframework.http.MediaType
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
@@ -17,15 +19,13 @@ import org.springframework.web.filter.OncePerRequestFilter
 class JwtAuthenticationFilter(
     private val jwtUtil: JWTUtil,
     private val jwtProvider: JWTProvider,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val corsProperties: CorsProperties
 ) : OncePerRequestFilter() {
 
     companion object {
         private val log = LoggerFactory.getLogger(JwtAuthenticationFilter::class.java)
-    }
-
-    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
-        return request.requestURI.startsWith("/h2-console") || request.requestURI == "/reissue"
+        private val SAFE_METHODS = setOf("GET", "HEAD", "OPTIONS", "TRACE")
     }
 
     override fun doFilterInternal(
@@ -33,6 +33,13 @@ class JwtAuthenticationFilter(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
+        if (!SAFE_METHODS.contains(request.method) && !isValidRequest(request)) {
+            log.warn("CSRF 검증 실패: method={}, origin={}",
+                request.method, request.getHeader("Origin"))
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid request")
+            return
+        }
+
         val accessToken = getTokenFromCookies(request, JWTProvider.TokenType.ACCESS.tokenName)
 
         if (isValidToken(accessToken)) {
@@ -106,6 +113,26 @@ class JwtAuthenticationFilter(
         val auth: Authentication = OAuth2AuthenticationToken(principal, principal.authorities, "naver")
         SecurityContextHolder.getContext().authentication = auth
         filterChain.doFilter(request, response)
+    }
+
+    private fun isValidRequest(request: HttpServletRequest): Boolean {
+        val origin = request.getHeader("Origin")
+        if (origin != null) {
+            return corsProperties.allowedOrigins.contains(origin)
+        }
+
+        val referer = request.getHeader("Referer")
+        if (referer != null && isRefererAllowed(referer)) {
+            return true
+        }
+
+        return request.contentType.contains(MediaType.APPLICATION_JSON_VALUE)
+    }
+
+    private fun isRefererAllowed(referer: String): Boolean {
+        return corsProperties.allowedOrigins.any { allowedOrigin ->
+            referer.startsWith("$allowedOrigin/") || referer == allowedOrigin
+        }
     }
 
     private fun issueAccessToken(user: User, response: HttpServletResponse) {
