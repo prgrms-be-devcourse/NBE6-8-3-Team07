@@ -24,7 +24,7 @@ class Comments (
     @Column(length = 500, nullable = false)
     var content: String,
 
-    // 대댓글 기능용 부모 댓글
+    // 부모 댓글
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id", nullable = true)
     @OnDelete(action = OnDeleteAction.CASCADE)
@@ -53,12 +53,12 @@ class Comments (
     }
 
     // 편의 메서드들
-    fun isReply(): Boolean = parent != null
-    fun isParentComment(): Boolean = parent == null
-    fun hasChildren(): Boolean = children.isNotEmpty()
-    fun getDepth(): Int = if (parent == null) 0 else 1
+    fun isReply(): Boolean = parent != null // 대댓글 여부
+    fun isParentComment(): Boolean = parent == null // 부모 댓글 여부
+    fun hasChildren(): Boolean = children.isNotEmpty() // 자식 댓글 존재 여부
+    fun getDepth(): Int = if (parent == null) 0 else 1 // 0: 부모 댓글, 1: 대댓글
 
-        // Comments 수정
+    // Comments 수정
     fun updateContent(content: String) {
         this.content = content
     }

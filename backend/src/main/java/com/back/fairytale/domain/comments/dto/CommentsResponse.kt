@@ -10,6 +10,10 @@ data class CommentsResponse(
     val content: String,
     val createdAt: LocalDateTime?,
     val updatedAt: LocalDateTime?,
+    val parentId: Long? = null, // 부모 댓글 ID
+    val depth: Int, // 댓글 깊이 (0: 부모 댓글, 1: 대댓글)
+    val hasChildren: Boolean, // 자식 댓글 존재 여부
+    val childrenCount: Int, // 자식 댓글 수
 ) {
     companion object {
         @JvmStatic
@@ -20,7 +24,11 @@ data class CommentsResponse(
                 nickname = comments.user.nickname,
                 content = comments.content,
                 createdAt = comments.createdAt,
-                updatedAt = comments.updatedAt
+                updatedAt = comments.updatedAt,
+                parentId = comments.parent?.id,
+                depth = comments.getDepth(),
+                hasChildren = comments.hasChildren(),
+                childrenCount = comments.children.size,
             )
         }
     }
