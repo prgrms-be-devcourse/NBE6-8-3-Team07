@@ -34,7 +34,9 @@ class OAuth2LoginSuccessHandler(
         logger.info("OAuth2 로그인 성공: {}", authentication.name)
         val customUser = authentication.principal as CustomOAuth2User
         val userId = customUser.id
-        val refreshToken = userTokenService.getUserToken(userId)
+
+        val refreshToken = jwtProvider.createRefreshToken(userId, customUser.role)
+        userTokenService.saveOrUpdateUserToken(userId, refreshToken)
 
         val refreshCookie = jwtProvider.createRefreshTokenCookie(refreshToken)
 

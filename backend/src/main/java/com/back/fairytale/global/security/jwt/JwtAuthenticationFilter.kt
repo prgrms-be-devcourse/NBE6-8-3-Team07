@@ -1,5 +1,7 @@
 package com.back.fairytale.global.security.jwt
 
+import com.back.fairytale.domain.refreshtoken.entity.RefreshToken
+import com.back.fairytale.domain.refreshtoken.repository.RefreshTokenRepository
 import com.back.fairytale.domain.user.entity.User
 import com.back.fairytale.domain.user.repository.UserRepository
 import com.back.fairytale.global.security.CorsProperties
@@ -14,22 +16,19 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
-import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
-
 
 @Component
 class JwtAuthenticationFilter(
     private val jwtUtil: JWTUtil,
     private val jwtProvider: JWTProvider,
     private val userRepository: UserRepository,
+    private val refreshTokenRepository: RefreshTokenRepository,
     private val corsProperties: CorsProperties
 ) : OncePerRequestFilter() {
 
     companion object {
         private val log = LoggerFactory.getLogger(JwtAuthenticationFilter::class.java)
         private val SAFE_METHODS = setOf("GET", "OPTIONS")
-        private const val TOKEN_GRACE_PERIOD_SECONDS = 10L
     }
 
     override fun shouldNotFilter(request: HttpServletRequest): Boolean {
@@ -43,96 +42,66 @@ class JwtAuthenticationFilter(
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
+        // CSRF 체크
         if (!SAFE_METHODS.contains(request.method) && !isValidRequest(request)) {
-            log.warn("CSRF 검증 실패: method={}, origin={}",
-                request.method, request.getHeader("Origin"))
+            log.warn("CSRF 검증 실패: method={}, origin={}", request.method, request.getHeader("Origin"))
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid request")
             return
         }
 
+        // Access Token 체크
         val accessToken = getTokenFromCookies(request, JWTProvider.TokenType.ACCESS.tokenName)
-
         if (isValidToken(accessToken)) {
             val userId = jwtUtil.getUserId(accessToken!!)
-            val optionalUser = userRepository.findById(userId)
-
-            if (optionalUser.isPresent) {
-                saveAuthenticate(optionalUser.get(), request, response, filterChain)
+            val user = userRepository.findById(userId).orElse(null)
+            if (user != null) {
+                saveAuthenticate(user, request, response, filterChain)
                 return
             }
+        }
 
-            log.warn("유효한 토큰이나 사용자 없음. ID: {}", userId)
+        // Refresh Token 체크
+        val refreshTokenValue = getTokenFromCookies(request, JWTProvider.TokenType.REFRESH.tokenName)
+        if (refreshTokenValue == null || !isValidToken(refreshTokenValue)) {
             filterChain.doFilter(request, response)
             return
         }
 
-        val refreshToken = getTokenFromCookies(request, JWTProvider.TokenType.REFRESH.tokenName)
-        if (!isValidToken(refreshToken)) {
-            log.info("리프레시 토큰이 유효하지 않습니다.")
-            filterChain.doFilter(request, response)
-            return
-        }
-
-        reissueTokens(refreshToken!!, request, response, filterChain)
+        reissueAccessToken(refreshTokenValue, request, response, filterChain)
     }
 
-    private fun reissueTokens(
-        refreshToken: String,
+    private fun reissueAccessToken(
+        refreshTokenValue: String,
         request: HttpServletRequest,
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        val userId = jwtUtil.getUserId(refreshToken)
-        val optionalUser = userRepository.findById(userId)
-
-        if (optionalUser.isEmpty) {
+        val tokenEntity = refreshTokenRepository.findByTokenWithUser(refreshTokenValue)
+        if (tokenEntity == null || jwtUtil.isExpired(tokenEntity.token)) {
+            log.warn("유효하지 않은 refresh token")
             response.status = HttpServletResponse.SC_UNAUTHORIZED
             return
         }
 
-        val user = optionalUser.get()
+        val user = tokenEntity.user
 
-        when {
-            refreshToken == user.refreshToken -> {
-                log.info("정상적인 토큰 재발급. 사용자 ID: {}", userId)
+        // 새 토큰 발급
+        val newAccessToken = jwtProvider.createAccessToken(user.id!!, user.role.key)
+        val newRefreshToken = jwtProvider.createRefreshToken(user.id!!, user.role.key)
 
-                val oldRefreshToken = user.refreshToken
-                val newAccessToken = jwtProvider.createAccessToken(user.id!!, user.role.key)
-                val newRefreshToken = jwtProvider.createRefreshToken(user.id!!, user.role.key)
+        refreshTokenRepository.delete(tokenEntity)
 
-                user.refreshToken = newRefreshToken
-                user.previousRefreshToken = oldRefreshToken
-                user.refreshTokenUpdatedAt = LocalDateTime.now()
-                userRepository.save(user)
+        // 새 RefreshToken 저장
+        val newRefreshEntity = RefreshToken(
+            token = newRefreshToken,
+            user = user,
+        )
+        refreshTokenRepository.save(newRefreshEntity)
 
-                response.apply {
-                    addCookie(jwtProvider.wrapAccessTokenToCookie(newAccessToken))
-                    addCookie(jwtProvider.wrapRefreshTokenToCookie(newRefreshToken))
-                }
+        response.addCookie(jwtProvider.wrapAccessTokenToCookie(newAccessToken))
+        response.addCookie(jwtProvider.wrapRefreshTokenToCookie(newRefreshToken))
 
-                log.info("토큰 재발급 완료. 사용자 ID: {}", userId)
-                saveAuthenticate(user, request, response, filterChain)
-            }
-
-            isWithinGracePeriod(refreshToken, user) -> {
-                log.info("유예 기간 내 이전 토큰 사용. 액세스 토큰만 재발급. 사용자 ID: {}", userId)
-                issueAccessToken(user, response)
-                saveAuthenticate(user, request, response, filterChain)
-            }
-
-            else -> {
-                log.warn("유효하지 않은 리프레시 토큰. 사용자 ID: {}", userId)
-                response.status = HttpServletResponse.SC_UNAUTHORIZED
-            }
-        }
-    }
-
-    private fun isWithinGracePeriod(requestedToken: String, user: User): Boolean {
-        val previousToken = user.previousRefreshToken ?: return false
-        val updatedAt = user.refreshTokenUpdatedAt ?: return false
-
-        return requestedToken == previousToken &&
-                ChronoUnit.SECONDS.between(updatedAt, LocalDateTime.now()) <= TOKEN_GRACE_PERIOD_SECONDS
+        saveAuthenticate(user, request, response, filterChain)
     }
 
     private fun saveAuthenticate(
@@ -165,12 +134,6 @@ class JwtAuthenticationFilter(
         return corsProperties.allowedOrigins.any { allowedOrigin ->
             referer.startsWith("$allowedOrigin/") || referer == allowedOrigin
         }
-    }
-
-    private fun issueAccessToken(user: User, response: HttpServletResponse) {
-        val newAccessToken = jwtProvider.createAccessToken(user.id!!, user.role.key)
-        response.addCookie(jwtProvider.wrapAccessTokenToCookie(newAccessToken))
-        response.addCookie(jwtProvider.wrapRefreshTokenToCookie(user.refreshToken!!))
     }
 
     private fun isValidToken(token: String?): Boolean {

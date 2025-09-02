@@ -1,10 +1,13 @@
 package com.back.fairytale.domain.user.service
 
+import com.back.fairytale.domain.refreshtoken.entity.RefreshToken
+import com.back.fairytale.domain.refreshtoken.repository.RefreshTokenRepository
 import com.back.fairytale.domain.user.entity.User
 import com.back.fairytale.domain.user.enums.IsDeleted
 import com.back.fairytale.domain.user.enums.Role
 import com.back.fairytale.domain.user.repository.UserRepository
 import com.back.fairytale.global.security.jwt.JWTProvider
+import com.back.fairytale.global.security.jwt.JWTUtil
 import com.back.fairytale.global.util.impl.GoogleCloudStorage
 import com.google.cloud.storage.Storage
 import jakarta.servlet.http.Cookie
@@ -29,7 +32,13 @@ class AuthServiceTest {
     private lateinit var userRepository: UserRepository
 
     @Autowired
+    private lateinit var refreshTokenRepository: RefreshTokenRepository
+
+    @Autowired
     private lateinit var jwtProvider: JWTProvider
+
+    @Autowired
+    private lateinit var jWTUtil: JWTUtil
 
     private lateinit var testUser: User
     private lateinit var validRefreshToken: String
@@ -52,9 +61,13 @@ class AuthServiceTest {
         )
 
         val savedUser = userRepository.save(testUser)
-
         validRefreshToken = jwtProvider.createRefreshToken(savedUser.id!!, savedUser.role.key)
-        savedUser.refreshToken = validRefreshToken
+
+        val refreshTokenEntity = RefreshToken(
+            token = validRefreshToken,
+            user = savedUser
+        )
+        refreshTokenRepository.save(refreshTokenEntity)
     }
 
     @Test
@@ -80,8 +93,9 @@ class AuthServiceTest {
         Assertions.assertThat(accessTokenCookie.value).isEqualTo(newAccessToken)
         Assertions.assertThat(newRefreshTokenCookie.value).isEqualTo(newRefreshToken)
 
-        val updatedUser = userRepository.findById(testUser.id!!).orElseThrow()
-        Assertions.assertThat(updatedUser.refreshToken).isEqualTo(newRefreshToken)
+        val updatedRefreshToken = refreshTokenRepository.findByToken(newRefreshToken)
+        Assertions.assertThat(updatedRefreshToken).isNotNull()
+        Assertions.assertThat(updatedRefreshToken!!.user.id).isEqualTo(testUser.id)
     }
 
     @Test
@@ -114,15 +128,15 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("리프레시 토큰이 다를 경우 재발급이 실패한다.")
-    fun reissueAccessToken_TokenMismatch() {
-        // Given
-        authService.reissueTokens(validRefreshToken)
+    @DisplayName("만료된 리프레시 토큰으로 재발급이 실패한다.")
+    fun reissueAccessToken_ExpiredToken() {
+        // Given - 만료된 토큰 생성 (JWT 생성 시 과거 시간으로 설정)
+        val expiredToken = jWTUtil.createJwt(testUser.id!!, testUser.role.key, -1000L, "refresh")
 
-        // When & Then - 원래 토큰으로 재발급 시도
-        Assertions.assertThatThrownBy { authService.reissueTokens(validRefreshToken) }
+        // When & Then
+        Assertions.assertThatThrownBy { authService.reissueTokens(expiredToken) }
             .isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessageContaining("Refresh Token이 일치하지 않습니다.")
+            .hasMessage("Refresh token이 유효하지 않습니다.")
     }
 
     @Test
@@ -132,19 +146,7 @@ class AuthServiceTest {
         authService.logout(testUser.id!!)
 
         // Then
-        val logOutUser = userRepository.findById(testUser.id!!).orElseThrow()
-        Assertions.assertThat(logOutUser.refreshToken).isNull()
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 사용자 로그아웃 시도 시 실패한다.")
-    fun logout_NonExistentUser() {
-        // Given
-        val nonExistentUserId = 999L
-
-        // When & Then
-        Assertions.assertThatThrownBy { authService.logout(nonExistentUserId) }
-            .isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessageContaining("해당 유저가 존재하지 않습니다")
+        val userTokens = refreshTokenRepository.findAllByUserId(testUser.id!!)
+        Assertions.assertThat(userTokens).isEmpty()
     }
 }

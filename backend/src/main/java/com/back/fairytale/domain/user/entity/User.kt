@@ -2,15 +2,11 @@ package com.back.fairytale.domain.user.entity
 
 import com.back.fairytale.domain.bookmark.entity.BookMark
 import com.back.fairytale.domain.fairytale.entity.Fairytale
+import com.back.fairytale.domain.refreshtoken.entity.RefreshToken
 import com.back.fairytale.domain.user.enums.IsDeleted
 import com.back.fairytale.domain.user.enums.Role
 import com.back.fairytale.global.entity.BaseEntity
 import jakarta.persistence.*
-import lombok.AccessLevel
-import lombok.AllArgsConstructor
-import lombok.Builder
-import lombok.NoArgsConstructor
-import java.time.LocalDateTime
 
 
 @Entity
@@ -40,16 +36,6 @@ class User(
     @Column(unique = true, nullable = false)
     val socialId: String,
 
-    @Column(unique = true, columnDefinition = "TEXT")
-    var refreshToken: String? = null,
-
-    // Grace Period를 위한 이전 리프레시 토큰 저장
-    @Column(columnDefinition = "TEXT")
-    var previousRefreshToken: String? = null,
-
-    // 리프레시 토큰 업데이트 시간
-    @Column
-    var refreshTokenUpdatedAt: LocalDateTime? = null
 ) : BaseEntity() {
 
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
@@ -57,6 +43,9 @@ class User(
 
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
     val favorites: MutableList<BookMark> = mutableListOf()
+
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val refreshTokens: MutableList<RefreshToken> = mutableListOf()
 
     fun update(name: String, nickname: String, email: String) = apply {
         this.name = name

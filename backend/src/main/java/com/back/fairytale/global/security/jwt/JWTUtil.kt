@@ -72,4 +72,14 @@ class JWTUtil(@Value("\${spring.jwt.secret}") secret: String) {
             .payload
             .get("role", String::class.java)
     }
+
+    fun isExpired(token: String?): Boolean {
+        return Jwts.parser()
+            .verifyWith(secretKey)
+            .build()
+            .parseSignedClaims(token)
+            .payload
+            .expiration
+            .before(Date())
+    }
 }
