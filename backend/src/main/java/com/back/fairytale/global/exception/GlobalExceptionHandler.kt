@@ -25,6 +25,11 @@ class GlobalExceptionHandler {
         return ResponseEntity(ex.message, HttpStatus.FORBIDDEN)
     }
 
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleIllegalArgumentException(ex: IllegalArgumentException): ResponseEntity<String> {
+        return ResponseEntity(ex.message, HttpStatus.BAD_REQUEST)
+    }
+
     @ExceptionHandler(RuntimeException::class)
     fun handleRuntimeException(ex: RuntimeException): ResponseEntity<String> {
         return ResponseEntity(ex.message, HttpStatus.INTERNAL_SERVER_ERROR)
