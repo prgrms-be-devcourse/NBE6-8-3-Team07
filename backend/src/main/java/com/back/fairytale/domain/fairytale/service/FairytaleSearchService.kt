@@ -37,20 +37,18 @@ class FairytaleSearchService (
             else -> request.size
         }
 
-        val sortDirection = Sort.Direction.DESC
-        val sortProperty = when (request.sortBy.lowercase()) {
-            "date", "createdat", "latest" -> "createdAt"
-            "title", "name" -> "title"
+        // 정렬은 네이티브 쿼리에서 직접 처리하므로 여기서는 검증만 수행
+        when (request.sortBy.lowercase()) {
+            "date", "createdat", "latest" -> { /* 유효한 정렬 옵션 */ }
+            "title", "name" -> { /* 유효한 정렬 옵션 */ }
             else -> {
-                logger.warn("알 수 없는 정렬 옵션: {}, 기본값(createdAt) 사용", request.sortBy)
-                "createdAt"
+                logger.warn("알 수 없는 정렬 옵션: {}, 기본값(date) 사용", request.sortBy)
             }
         }
 
         val pageable = PageRequest.of(
             validatedPage,
-            validatedSize,
-            Sort.by(sortDirection, sortProperty)
+            validatedSize
         )
         
         // 데이터베이스 검색

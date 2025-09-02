@@ -57,11 +57,17 @@ interface FairytaleRepository : JpaRepository<Fairytale, Long> {
     fun findPublicFairytalesForGallery(pageable: Pageable): Page<Fairytale>
 
     // 키워드로 동화 검색 (제목과 내용에서 검색)
-    @Query("""
-        SELECT f FROM Fairytale f 
+    @Query(value = """
+        SELECT * FROM fairytale f 
         WHERE UPPER(f.title) LIKE UPPER(CONCAT('%', :keyword, '%')) 
         OR UPPER(f.content) LIKE UPPER(CONCAT('%', :keyword, '%'))
-        ORDER BY f.createdAt DESC
-    """)
+        ORDER BY f.created_at DESC
+    """, 
+    countQuery = """
+        SELECT COUNT(*) FROM fairytale f 
+        WHERE UPPER(f.title) LIKE UPPER(CONCAT('%', :keyword, '%')) 
+        OR UPPER(f.content) LIKE UPPER(CONCAT('%', :keyword, '%'))
+    """,
+    nativeQuery = true)
     fun searchByKeyword(@Param("keyword") keyword: String, pageable: Pageable): Page<Fairytale>
 }
