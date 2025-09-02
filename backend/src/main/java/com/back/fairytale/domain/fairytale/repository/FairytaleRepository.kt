@@ -55,4 +55,13 @@ interface FairytaleRepository : JpaRepository<Fairytale, Long> {
     // 갤러리용 공개 동화 조회 (페이징 지원)
     @Query("SELECT f FROM Fairytale f WHERE f.isPublic = true ORDER BY f.createdAt DESC")
     fun findPublicFairytalesForGallery(pageable: Pageable): Page<Fairytale>
+
+    // 키워드로 동화 검색 (제목과 내용에서 검색)
+    @Query("""
+        SELECT f FROM Fairytale f 
+        WHERE UPPER(f.title) LIKE UPPER(CONCAT('%', :keyword, '%')) 
+        OR UPPER(f.content) LIKE UPPER(CONCAT('%', :keyword, '%'))
+        ORDER BY f.createdAt DESC
+    """)
+    fun searchByKeyword(@Param("keyword") keyword: String, pageable: Pageable): Page<Fairytale>
 }
