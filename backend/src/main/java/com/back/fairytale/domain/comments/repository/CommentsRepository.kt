@@ -16,10 +16,10 @@ interface CommentsRepository : JpaRepository<Comments, Long> {
         SELECT c FROM Comments c
         WHERE c.fairytale.id = :fairytaleId
         ORDER BY 
-            COALESCE(c.parent.id, c.id) ASC, /* 부모 댓글 기준 정렬 */
-            c.parent.id ASC NULLS FIRST, /* 부모 댓글 우선 정렬 */
-            c.createdAt ASC /* 같은 부모 내에서는 생성일 기준 정렬 */
-    """)
+            COALESCE(c.parent.id, c.id) ASC,
+            c.parent.id ASC NULLS FIRST,
+            c.createdAt ASC
+    """) // Order by는 순서대로 부모 댓글 기준 정렬, 부모 댓글 우선 정렬, 같은 부모 내에서는 생성일 기준 정렬
     fun findByFairytaleIdOrderByHierarchy(
         @Param("fairytaleId") fairytaleId: Long,
         pageable: Pageable
