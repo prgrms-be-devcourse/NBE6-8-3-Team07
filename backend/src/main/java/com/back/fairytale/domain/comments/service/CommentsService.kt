@@ -49,8 +49,22 @@ class CommentsService (
         val fairytale = fairytaleRepository.findById(request.fairytaleId)
             .orElseThrow { EntityNotFoundException("Id가 ${request.fairytaleId} 인 동화를 찾을 수 없습니다.") }
 
+        // 부모 댓글 조회 (대댓글인 경우)
+        val parentComment = request.parentId?.let { parentId ->
+            val parent = commentsRepository.findById(parentId).orElseThrow {
+                EntityNotFoundException("Id가 $parentId 인 부모 댓글을 찾을 수 없습니다.")
+            }
+
+            // 같은 동화에 속하는지 검증
+            if (parent.fairytale.id != request.fairytaleId) {
+                throw IllegalArgumentException("부모 댓글과 다른 동화에는 대댓글을 작성할 수 없습니다.")
+            }
+
+            parent
+        }
+
         // 댓글 생성
-        val comments = Comments(fairytale, user, request.content)
+        val comments = Comments(fairytale, user, request.content, parentComment)
 
         // 댓글 저장
         val savedComments = commentsRepository.save(comments)
@@ -62,15 +76,22 @@ class CommentsService (
     // 댓글 조회
     @Transactional(readOnly = true)
     fun getCommentsByFairytale(fairytaleId: Long, pageable: Pageable): Page<CommentsResponse> {
-        // 동화 조회
-        val fairytale = fairytaleRepository.findById(fairytaleId)
-            .orElseThrow { EntityNotFoundException("Id가 $fairytaleId 인 동화를 찾을 수 없습니다.") }
-
         // 댓글 조회
-        val commentsPage: Page<Comments> = commentsRepository.findByFairytale(fairytale, pageable)
+        val commentsPage = commentsRepository.findByFairytaleIdOrderByHierarchy(fairytaleId, pageable)
+
+        // 부모 댓글 ID 리스트 추출
+        val parentIds = commentsPage.content
+            .filter { it.parent == null } // 부모 댓글만 필터링
+            .mapNotNull { it.id } // null이 아닌 ID만 추출
+
+        // 부모 댓글 ID별 자식 댓글 수 조회
+        val childrenCountMap = commentsRepository.countChildrenByParentId(parentIds)
+            .associate { it[0] as Long to it[1] as Long }
 
         // 응답 생성
-        return commentsPage.map(CommentsResponse::from)
+        return commentsPage.map { comment ->
+            CommentsResponse.from(comment, childrenCountMap[comment.id] ?: 0L)
+        }
     }
 
     // 댓글 수정

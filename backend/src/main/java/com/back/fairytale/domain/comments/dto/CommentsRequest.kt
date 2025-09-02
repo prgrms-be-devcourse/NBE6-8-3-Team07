@@ -13,5 +13,7 @@ data class CommentsRequest(
         max = 500,
         message = "댓글은 최대 500자까지 입력할 수 있습니다."
     )
-    val content: String
+    val content: String,
+
+    val parentId: Long? = null // 부모 댓글 ID
 )

@@ -10,6 +10,10 @@ interface Comment {
   content: string;
   createdAt: string;
   updatedAt: string;
+  parentId?: number;
+  depth: number;
+  hasChildren: boolean;
+  childrenCount: number;
 }
 
 interface CommentsProps {
@@ -21,6 +25,8 @@ export default function Comments({ fairytaleId }: CommentsProps) {
   const [newComment, setNewComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
   const [editingContent, setEditingContent] = useState("");
+  const [replyingToId, setReplyingToId] = useState<number | null>(null);
+  const [replyContent, setReplyContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -81,10 +87,44 @@ export default function Comments({ fairytaleId }: CommentsProps) {
       }
 
       setNewComment("");
-      fetchComments(0); // 댓글 추가 후 목록 새로고침
+      fetchComments(0);
     } catch (err) {
       console.error("Error adding comment:", err);
       setError("댓글 추가에 실패했습니다.");
+    }
+  };
+
+  // 대댓글 추가
+  const handleAddReply = async (parentId: number) => {
+    if (!replyContent.trim()) return;
+
+    try {
+      const response = await customFetch(
+        `${NEXT_PUBLIC_API_BASE_URL}/api/fairytales/${fairytaleId}/comments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ 
+            fairytaleId, 
+            content: replyContent, 
+            parentId 
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      setReplyContent("");
+      setReplyingToId(null);
+      fetchComments(currentPage);
+    } catch (err) {
+      console.error("Error adding reply:", err);
+      setError("대댓글 추가에 실패했습니다.");
     }
   };
 
@@ -150,6 +190,16 @@ export default function Comments({ fairytaleId }: CommentsProps) {
   const cancelEditing = () => {
     setEditingCommentId(null);
     setEditingContent("");
+  };
+
+  const startReplying = (commentId: number) => {
+    setReplyingToId(commentId);
+    setReplyContent("");
+  };
+
+  const cancelReplying = () => {
+    setReplyingToId(null);
+    setReplyContent("");
   };
 
   const formatDate = (dateString: string) => {
@@ -263,62 +313,120 @@ export default function Comments({ fairytaleId }: CommentsProps) {
           </p>
         )}
         {comments.map((comment) => (
-          <div
-            key={comment.id}
-            className="bg-white p-4 rounded-md shadow-sm border border-gray-200"
-          >
-            <div className="flex justify-between items-center mb-2">
-              <span className="font-semibold text-gray-800">
-                {comment.nickname}
-              </span>
-              <span className="text-sm text-gray-500">
-                {formatDate(comment.createdAt)}
-              </span>
+          <div key={comment.id} className="mb-2">
+            <div
+              className={`bg-white p-4 rounded-md shadow-sm border border-gray-200 ${
+                comment.depth > 0 ? 'ml-8 bg-gray-50 border-l-4 border-orange-200' : ''
+              }`}
+              style={{ marginLeft: comment.depth * 32 + 'px' }}
+            >
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-semibold text-gray-800">
+                  {comment.nickname}
+                  {comment.depth > 0 && (
+                    <span className="ml-2 text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full">
+                      답글
+                    </span>
+                  )}
+                </span>
+                <span className="text-sm text-gray-500">
+                  {formatDate(comment.createdAt)}
+                  {comment.childrenCount > 0 && (
+                    <span className="ml-2 text-xs text-blue-600">
+                      답글 {comment.childrenCount}개
+                    </span>
+                  )}
+                </span>
+              </div>
+              {editingCommentId === comment.id ? (
+                <div>
+                  <textarea
+                    className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    rows={2}
+                    value={editingContent}
+                    onChange={(e) => setEditingContent(e.target.value)}
+                  ></textarea>
+                  <div className="mt-2 flex justify-end space-x-2">
+                    <button
+                      onClick={() => handleEditComment(comment.id)}
+                      className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 cursor-pointer"
+                    >
+                      저장
+                    </button>
+                    <button
+                      onClick={cancelEditing}
+                      className="px-3 py-1 bg-gray-300 text-gray-800 text-sm rounded-md hover:bg-gray-600 hover:text-white cursor-pointer"
+                    >
+                      취소
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-700 mb-3">{comment.content}</p>
+              )}
+              <div className="flex justify-between items-center">
+                <div className="flex space-x-2">
+                  {editingCommentId !== comment.id && comment.depth === 0 && (
+                    <button
+                      onClick={() => startReplying(comment.id)}
+                      className="px-3 py-1 bg-orange-500 text-white text-sm rounded-md hover:bg-orange-600 cursor-pointer"
+                    >
+                      답글
+                    </button>
+                  )}
+                </div>
+                <div className="flex space-x-2">
+                  {editingCommentId !== comment.id && (
+                    <>
+                      <button
+                        onClick={() => startEditing(comment)}
+                        className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 cursor-pointer"
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={() => handleDeleteComment(comment.id)}
+                        className="px-3 py-1 bg-gray-300 text-gray-800 text-sm rounded-md hover:bg-gray-600 hover:text-white cursor-pointer"
+                      >
+                        삭제
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-            {editingCommentId === comment.id ? (
-              <div>
+            
+            {/* 대댓글 작성 폼 */}
+            {replyingToId === comment.id && (
+              <div className="mt-3 ml-8 p-3 bg-orange-50 border border-orange-200 rounded-md">
+                <div className="flex items-center mb-2">
+                  <span className="text-sm font-medium text-orange-700">
+                    {comment.nickname}님에게 답글 작성
+                  </span>
+                </div>
                 <textarea
-                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400"
+                  className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400"
                   rows={2}
-                  value={editingContent}
-                  onChange={(e) => setEditingContent(e.target.value)}
+                  placeholder="답글을 작성해주세요..."
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
                 ></textarea>
                 <div className="mt-2 flex justify-end space-x-2">
                   <button
-                    onClick={() => handleEditComment(comment.id)}
-                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 cursor-pointer"
+                    onClick={() => handleAddReply(comment.id)}
+                    className="px-3 py-1 bg-orange-500 text-white text-sm rounded-md hover:bg-orange-600 cursor-pointer"
                   >
-                    저장
+                    답글 작성
                   </button>
                   <button
-                    onClick={cancelEditing}
+                    onClick={cancelReplying}
                     className="px-3 py-1 bg-gray-300 text-gray-800 text-sm rounded-md hover:bg-gray-600 hover:text-white cursor-pointer"
                   >
                     취소
                   </button>
                 </div>
               </div>
-            ) : (
-              <p className="text-gray-700 mb-3">{comment.content}</p>
             )}
-            <div className="flex justify-end space-x-2">
-              {editingCommentId !== comment.id && (
-                <>
-                  <button
-                    onClick={() => startEditing(comment)}
-                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 cursor-pointer"
-                  >
-                    수정
-                  </button>
-                  <button
-                    onClick={() => handleDeleteComment(comment.id)}
-                    className="px-3 py-1 bg-gray-300 text-gray-800 text-sm rounded-md hover:bg-gray-600 hover:text-white cursor-pointer"
-                  >
-                    삭제
-                  </button>
-                </>
-              )}
-            </div>
           </div>
         ))}
       </div>
