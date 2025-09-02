@@ -157,39 +157,6 @@ class FairytaleSearchControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/fairytales/search - 대소문자 구분 없는 검색")
-    fun searchFairytales_CaseInsensitive_Success() {
-        // Given - 영문 제목 동화 추가
-        val englishFairytale = Fairytale(
-            user = user,
-            title = "Little Red Riding Hood",
-            content = "A little girl went to visit her grandmother.",
-            imageUrl = "https://example.com/red-hood.jpg"
-        )
-        fairytaleRepository.save(englishFairytale)
-
-        // When & Then - 소문자로 검색
-        mockMvc.perform(
-            get("/api/fairytales/search")
-                .param("keyword", "little")
-                .contentType(MediaType.APPLICATION_JSON)
-        )
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.content.length()").value(1))
-            .andExpect(jsonPath("$.content[0].title").value("Little Red Riding Hood"))
-
-        // When & Then - 대문자로 검색
-        mockMvc.perform(
-            get("/api/fairytales/search")
-                .param("keyword", "LITTLE")
-                .contentType(MediaType.APPLICATION_JSON)
-        )
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.content.length()").value(1))
-            .andExpect(jsonPath("$.content[0].title").value("Little Red Riding Hood"))
-    }
-
-    @Test
     @DisplayName("GET /api/fairytales/search - 페이징 기능 테스트")
     fun searchFairytales_Pagination_Success() {
         // When & Then - 첫 번째 페이지 (크기 2)

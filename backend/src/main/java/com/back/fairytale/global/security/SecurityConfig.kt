@@ -41,8 +41,6 @@ class SecurityConfig(
                     .requestMatchers("/fairytales/public").permitAll()
                     .requestMatchers(HttpMethod.POST, "/reissue").permitAll()
                     .requestMatchers(HttpMethod.POST, "/logout").permitAll()
-                    // 성능 테스트를 위한 검색 API 임시 허용
-                    .requestMatchers(HttpMethod.GET, "/api/fairytales/search").permitAll()
 
                     // 인증이 필요한 경로들
                     .requestMatchers("/api/**").hasAnyAuthority("ROLE_USER", "ROLE_ADMIN")

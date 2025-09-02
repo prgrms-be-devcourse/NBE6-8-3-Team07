@@ -26,7 +26,7 @@ spring:
         bucket: dummy-bucket
 
   datasource:
-    url: jdbc:h2:mem:db_test;MODE=MySQL
+    url: jdbc:h2:mem:db_test;MODE=MySQL;DB_CLOSE_DELAY=-1;CACHE_SIZE=65536
     username: sa
     password:
     driver-class-name: org.h2.Driver
@@ -34,6 +34,7 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
+    defer-datasource-initialization: true
 
   jwt:
     secret: ${JWT_SECRET}

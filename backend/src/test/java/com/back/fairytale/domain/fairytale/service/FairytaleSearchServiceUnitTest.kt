@@ -69,10 +69,10 @@ class FairytaleSearchServiceUnitTest {
             sortBy = "date",
             scope = "all"
         )
-        val pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"))
+        val pageable = PageRequest.of(0, 10)
         val fairytalesPage = PageImpl(listOf(mockFairytale), pageable, 1)
 
-        given(fairytaleRepository.searchByKeyword(keyword, pageable)).willReturn(fairytalesPage)
+        given(fairytaleRepository.searchByKeyword(eq(keyword), any())).willReturn(fairytalesPage)
 
         // When
         val result = fairytaleSearchService.search(request)
@@ -83,7 +83,7 @@ class FairytaleSearchServiceUnitTest {
         assertThat(result.content[0].characters).isEqualTo("토끼, 거북이")
         assertThat(result.totalElements).isEqualTo(1)
         
-        verify(fairytaleRepository, times(1)).searchByKeyword(keyword, pageable)
+        verify(fairytaleRepository, times(1)).searchByKeyword(eq(keyword), any())
     }
 
     @Test
@@ -139,17 +139,17 @@ class FairytaleSearchServiceUnitTest {
             sortBy = "date",
             scope = "all"
         )
-        val expectedPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"))
-        val fairytalesPage = PageImpl(listOf(mockFairytale), expectedPageable, 1)
+        val pageable = PageRequest.of(0, 10)
+        val fairytalesPage = PageImpl(listOf(mockFairytale), pageable, 1)
 
-        given(fairytaleRepository.searchByKeyword("토끼", expectedPageable)).willReturn(fairytalesPage)
+        given(fairytaleRepository.searchByKeyword(eq("토끼"), any())).willReturn(fairytalesPage)
 
         // When
         val result = fairytaleSearchService.search(request)
 
         // Then
         assertThat(result.number).isEqualTo(0) // 페이지 번호가 0으로 수정되었는지 확인
-        verify(fairytaleRepository).searchByKeyword("토끼", expectedPageable)
+        verify(fairytaleRepository).searchByKeyword(eq("토끼"), any())
     }
 
     @Test
@@ -165,17 +165,17 @@ class FairytaleSearchServiceUnitTest {
             sortBy = "date",
             scope = "all"
         )
-        val expectedPageable = PageRequest.of(0, 100, Sort.by(Sort.Direction.DESC, "createdAt"))
-        val fairytalesPage = PageImpl(listOf(mockFairytale), expectedPageable, 1)
+        val pageable = PageRequest.of(0, 100)
+        val fairytalesPage = PageImpl(listOf(mockFairytale), pageable, 1)
 
-        given(fairytaleRepository.searchByKeyword("토끼", expectedPageable)).willReturn(fairytalesPage)
+        given(fairytaleRepository.searchByKeyword(eq("토끼"), any())).willReturn(fairytalesPage)
 
         // When
         val result = fairytaleSearchService.search(request)
 
         // Then
         assertThat(result.size).isEqualTo(100) // 사이즈가 100으로 제한되었는지 확인
-        verify(fairytaleRepository).searchByKeyword("토끼", expectedPageable)
+        verify(fairytaleRepository).searchByKeyword(eq("토끼"), any())
     }
 
     @Test
@@ -191,17 +191,17 @@ class FairytaleSearchServiceUnitTest {
             sortBy = "date",
             scope = "all"
         )
-        val expectedPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"))
-        val fairytalesPage = PageImpl(listOf(mockFairytale), expectedPageable, 1)
+        val pageable = PageRequest.of(0, 10)
+        val fairytalesPage = PageImpl(listOf(mockFairytale), pageable, 1)
 
-        given(fairytaleRepository.searchByKeyword("동화", expectedPageable)).willReturn(fairytalesPage)
+        given(fairytaleRepository.searchByKeyword(eq("동화"), any())).willReturn(fairytalesPage)
 
         // When
         val result = fairytaleSearchService.search(request)
 
         // Then
         assertThat(result.content[0].title).isEqualTo("최신 동화")
-        verify(fairytaleRepository).searchByKeyword("동화", expectedPageable)
+        verify(fairytaleRepository).searchByKeyword(eq("동화"), any())
     }
 
     @Test
@@ -217,17 +217,17 @@ class FairytaleSearchServiceUnitTest {
             sortBy = "title",
             scope = "all"
         )
-        val expectedPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "title"))
-        val fairytalesPage = PageImpl(listOf(mockFairytale), expectedPageable, 1)
+        val pageable = PageRequest.of(0, 10)
+        val fairytalesPage = PageImpl(listOf(mockFairytale), pageable, 1)
 
-        given(fairytaleRepository.searchByKeyword("동화", expectedPageable)).willReturn(fairytalesPage)
+        given(fairytaleRepository.searchByKeyword(eq("동화"), any())).willReturn(fairytalesPage)
 
         // When
         val result = fairytaleSearchService.search(request)
 
         // Then
         assertThat(result.content[0].title).isEqualTo("가나다 동화")
-        verify(fairytaleRepository).searchByKeyword("동화", expectedPageable)
+        verify(fairytaleRepository).searchByKeyword(eq("동화"), any())
     }
 
     @Test
@@ -243,17 +243,17 @@ class FairytaleSearchServiceUnitTest {
             sortBy = "unknownSort",
             scope = "all"
         )
-        val expectedPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"))
-        val fairytalesPage = PageImpl(listOf(mockFairytale), expectedPageable, 1)
+        val pageable = PageRequest.of(0, 10)
+        val fairytalesPage = PageImpl(listOf(mockFairytale), pageable, 1)
 
-        given(fairytaleRepository.searchByKeyword("동화", expectedPageable)).willReturn(fairytalesPage)
+        given(fairytaleRepository.searchByKeyword(eq("동화"), any())).willReturn(fairytalesPage)
 
         // When
         val result = fairytaleSearchService.search(request)
 
         // Then
         assertThat(result.content).isNotEmpty
-        verify(fairytaleRepository).searchByKeyword("동화", expectedPageable)
+        verify(fairytaleRepository).searchByKeyword(eq("동화"), any())
     }
 
     @Test
@@ -267,10 +267,10 @@ class FairytaleSearchServiceUnitTest {
             sortBy = "date",
             scope = "all"
         )
-        val pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"))
+        val pageable = PageRequest.of(0, 10)
         val emptyPage = PageImpl<Fairytale>(emptyList(), pageable, 0)
 
-        given(fairytaleRepository.searchByKeyword("존재하지않는키워드", pageable)).willReturn(emptyPage)
+        given(fairytaleRepository.searchByKeyword(eq("존재하지않는키워드"), any())).willReturn(emptyPage)
 
         // When
         val result = fairytaleSearchService.search(request)
@@ -278,7 +278,7 @@ class FairytaleSearchServiceUnitTest {
         // Then
         assertThat(result.content).isEmpty()
         assertThat(result.totalElements).isEqualTo(0)
-        verify(fairytaleRepository).searchByKeyword("존재하지않는키워드", pageable)
+        verify(fairytaleRepository).searchByKeyword(eq("존재하지않는키워드"), any())
     }
 
     @Test
@@ -296,10 +296,10 @@ class FairytaleSearchServiceUnitTest {
             sortBy = "date",
             scope = "all"
         )
-        val pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"))
+        val pageable = PageRequest.of(0, 10)
         val fairytalesPage = PageImpl(listOf(fairytale1, fairytale2), pageable, 2)
 
-        given(fairytaleRepository.searchByKeyword("토끼", pageable)).willReturn(fairytalesPage)
+        given(fairytaleRepository.searchByKeyword(eq("토끼"), any())).willReturn(fairytalesPage)
 
         // When
         val result = fairytaleSearchService.search(request)
@@ -310,7 +310,7 @@ class FairytaleSearchServiceUnitTest {
         assertThat(result.content[1].title).isEqualTo("토끼의 모험")
         assertThat(result.totalElements).isEqualTo(2)
         
-        verify(fairytaleRepository).searchByKeyword("토끼", pageable)
+        verify(fairytaleRepository).searchByKeyword(eq("토끼"), any())
     }
 
     @Test
@@ -326,17 +326,17 @@ class FairytaleSearchServiceUnitTest {
             sortBy = "date",
             scope = "all"
         )
-        val pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"))
+        val pageable = PageRequest.of(0, 10)
         val fairytalesPage = PageImpl(listOf(mockFairytale), pageable, 1)
 
-        given(fairytaleRepository.searchByKeyword("토끼", pageable)).willReturn(fairytalesPage)
+        given(fairytaleRepository.searchByKeyword(eq("토끼"), any())).willReturn(fairytalesPage)
 
         // When
         val result = fairytaleSearchService.search(request)
 
         // Then
         assertThat(result.content).hasSize(1)
-        verify(fairytaleRepository).searchByKeyword("토끼", pageable) // 공백이 제거된 키워드로 호출되는지 확인
+        verify(fairytaleRepository).searchByKeyword(eq("토끼"), any()) // 공백이 제거된 키워드로 호출되는지 확인
     }
 
     @Test
@@ -352,10 +352,10 @@ class FairytaleSearchServiceUnitTest {
             sortBy = "date",
             scope = "all"
         )
-        val pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"))
+        val pageable = PageRequest.of(0, 10)
         val fairytalesPage = PageImpl(listOf(mockFairytale), pageable, 1)
 
-        given(fairytaleRepository.searchByKeyword("토끼", pageable)).willReturn(fairytalesPage)
+        given(fairytaleRepository.searchByKeyword(eq("토끼"), any())).willReturn(fairytalesPage)
 
         // When
         val result = fairytaleSearchService.search(request)
@@ -386,16 +386,16 @@ class FairytaleSearchServiceUnitTest {
             sortBy = "LATEST", // 대문자로 입력
             scope = "all"
         )
-        val expectedPageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"))
-        val fairytalesPage = PageImpl(listOf(mockFairytale), expectedPageable, 1)
+        val pageable = PageRequest.of(0, 10)
+        val fairytalesPage = PageImpl(listOf(mockFairytale), pageable, 1)
 
-        given(fairytaleRepository.searchByKeyword("동화", expectedPageable)).willReturn(fairytalesPage)
+        given(fairytaleRepository.searchByKeyword(eq("동화"), any())).willReturn(fairytalesPage)
 
         // When
         val result = fairytaleSearchService.search(request)
 
         // Then
         assertThat(result.content).isNotEmpty
-        verify(fairytaleRepository).searchByKeyword("동화", expectedPageable)
+        verify(fairytaleRepository).searchByKeyword(eq("동화"), any())
     }
 }

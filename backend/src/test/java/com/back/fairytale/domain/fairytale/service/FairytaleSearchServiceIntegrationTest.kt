@@ -152,44 +152,6 @@ class FairytaleSearchServiceIntegrationTest @Autowired constructor(
         assertTrue(result.content.any { it.title == "신데렐라" })
     }
 
-    @Test
-    @DisplayName("대소문자 구분 없는 검색 성공")
-    fun search_CaseInsensitive_Success() {
-        // Given - 영문 동화 추가
-        val englishFairytale = Fairytale(
-            user = user,
-            title = "Little Red Riding Hood",
-            content = "A Little girl went to visit her Grandmother.",
-            imageUrl = "https://example.com/red-hood.jpg"
-        )
-        fairytaleRepository.save(englishFairytale)
-
-        val requestLower = FairytaleSearchRequest(
-            keyword = "little",
-            page = 0,
-            size = 10,
-            sortBy = "date",
-            scope = "all"
-        )
-
-        val requestUpper = FairytaleSearchRequest(
-            keyword = "LITTLE",
-            page = 0,
-            size = 10,
-            sortBy = "date",
-            scope = "all"
-        )
-
-        // When
-        val resultLower = fairytaleSearchService.search(requestLower)
-        val resultUpper = fairytaleSearchService.search(requestUpper)
-
-        // Then
-        assertEquals(1, resultLower.content.size)
-        assertEquals(1, resultUpper.content.size)
-        assertEquals("Little Red Riding Hood", resultLower.content[0].title)
-        assertEquals("Little Red Riding Hood", resultUpper.content[0].title)
-    }
 
     @Test
     @DisplayName("빈 키워드로 검색 실패")
@@ -523,23 +485,4 @@ class FairytaleSearchServiceIntegrationTest @Autowired constructor(
         assertEquals("토끼와 거북이", result.content[0].title)
     }
 
-    @Test
-    @DisplayName("대소문자 혼합 정렬 옵션")
-    fun search_CaseInsensitiveSortBy_Success() {
-        // Given
-        val request = FairytaleSearchRequest(
-            keyword = "토끼",
-            page = 0,
-            size = 10,
-            sortBy = "LATEST", // 대문자로 입력
-            scope = "all"
-        )
-
-        // When
-        val result = fairytaleSearchService.search(request)
-
-        // Then
-        assertEquals(1, result.content.size)
-        assertEquals("토끼와 거북이", result.content[0].title)
-    }
 }

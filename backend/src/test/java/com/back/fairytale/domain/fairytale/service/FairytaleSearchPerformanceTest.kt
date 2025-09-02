@@ -20,6 +20,9 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import kotlin.math.roundToInt
 
+/**
+ * 테스트 실행을 위해 fairytale 엔티티의 content 필드를 CLOB에서 VARCHAR(10000)로 변경필요
+ */
 @SpringBootTest(classes = [BackendApplication::class])
 @ActiveProfiles("test")
 @Transactional
@@ -54,6 +57,8 @@ class FairytaleSearchPerformanceTest {
         // 기존 데이터 정리
         fairytaleRepository.deleteAll()
         userRepository.deleteAll()
+
+        // 성능 최적화 인덱스는 src/test/resources/schema.sql에서 자동 적용됨
 
         // 테스트용 사용자 생성
         testUser = User(
