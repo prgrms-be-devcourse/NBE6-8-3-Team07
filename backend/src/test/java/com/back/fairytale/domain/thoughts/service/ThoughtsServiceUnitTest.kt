@@ -25,7 +25,7 @@ import org.mockito.quality.Strictness
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension::class)
-class ThoughtsServiceTest {
+class ThoughtsServiceUnitTest {
 
     @Mock
     private lateinit var thoughtsRepository: ThoughtsRepository
