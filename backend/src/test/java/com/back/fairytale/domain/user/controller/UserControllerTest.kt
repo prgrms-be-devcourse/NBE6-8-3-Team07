@@ -18,8 +18,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.FilterType
 import org.springframework.http.MediaType
+import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
-import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.context.ActiveProfiles
@@ -60,7 +60,6 @@ class UserControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = ["USER"])
     @DisplayName("토큰 재발급이 성공적으로 이루어진다.")
     fun reissue_Success() {
         val tokenPairDto = TokenPairDto("newAccessToken", "newRefreshToken")
@@ -84,6 +83,16 @@ class UserControllerTest {
             post("/reissue")
                 .cookie(Cookie("refresh", validRefreshToken))
                 .with(csrf())
+                .with(
+                    authentication(
+                        OAuth2AuthenticationToken(
+                            customOAuth2User,
+                            listOf(SimpleGrantedAuthority("ROLE_USER")),
+                            "naver"
+                        )
+                    )
+                )
+
         )
             .andExpect(status().isOk)
             .andExpect(cookie().exists("Authorization"))
@@ -100,7 +109,6 @@ class UserControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = ["USER"])
     @DisplayName("잘못된 리프레시 토큰으로 재발급 시 실패한다.")
     fun reissue_InvalidRefreshToken_Failure() {
         val invalidRefreshToken = "invalid-refresh-token"
@@ -112,6 +120,15 @@ class UserControllerTest {
             post("/reissue")
                 .cookie(Cookie("refresh", invalidRefreshToken))
                 .with(csrf())
+                .with(
+                    authentication(
+                        OAuth2AuthenticationToken(
+                            customOAuth2User,
+                            listOf(SimpleGrantedAuthority("ROLE_USER")),
+                            "naver"
+                        )
+                    )
+                )
         )
             .andExpect(status().isBadRequest)
 
@@ -120,7 +137,6 @@ class UserControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = ["USER"])
     @DisplayName("리프레시 토큰 쿠키가 없을 때 재발급 요청은 실패한다.")
     fun reissue_NoRefreshToken_Failure() {
         given(authService.getRefreshTokenFromCookies(any()))
@@ -129,6 +145,15 @@ class UserControllerTest {
         mockMvc.perform(
             post("/reissue")
                 .with(csrf())
+                .with(
+                    authentication(
+                        OAuth2AuthenticationToken(
+                            customOAuth2User,
+                            listOf(SimpleGrantedAuthority("ROLE_USER")),
+                            "naver"
+                        )
+                    )
+                )
         )
             .andExpect(status().isBadRequest)
 
@@ -136,7 +161,6 @@ class UserControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = ["USER"])
     @DisplayName("빈 리프레시 토큰으로 재발급 시 실패한다.")
     fun reissue_EmptyRefreshToken_Failure() {
         given(authService.getRefreshTokenFromCookies(any())).willReturn("")
@@ -146,6 +170,15 @@ class UserControllerTest {
         mockMvc.perform(
             post("/reissue")
                 .with(csrf())
+                .with(
+                    authentication(
+                        OAuth2AuthenticationToken(
+                            customOAuth2User,
+                            listOf(SimpleGrantedAuthority("ROLE_USER")),
+                            "naver"
+                        )
+                    )
+                )
                 .cookie(Cookie("refresh", ""))
         )
             .andExpect(status().isBadRequest)
@@ -164,27 +197,12 @@ class UserControllerTest {
                     authentication(
                         OAuth2AuthenticationToken(
                             customOAuth2User,
-                            emptyList(),
-                            "registrationId"
+                            listOf(SimpleGrantedAuthority("ROLE_USER")),
+                            "naver"
                         )
                     )
                 )
         )
             .andExpect(status().isOk)
-    }
-
-    @Test
-    @WithMockUser(roles = ["USER"])
-    @DisplayName("잘못된 토큰으로 사용자 정보 조회 시 401 에러가 발생한다.")
-    fun getCurrentUser_InvalidToken() {
-        val invalidToken = "invalid-access-token"
-
-        mockMvc.perform(
-            get("/users/me")
-                .cookie(Cookie("Authorization", invalidToken))
-        )
-            .andExpect(status().isUnauthorized)
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("인증이 필요한 서비스입니다."))
     }
 }

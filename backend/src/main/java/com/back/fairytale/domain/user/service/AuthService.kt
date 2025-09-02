@@ -1,5 +1,7 @@
 package com.back.fairytale.domain.user.service
 
+import com.back.fairytale.domain.refreshtoken.entity.RefreshToken
+import com.back.fairytale.domain.refreshtoken.repository.RefreshTokenRepository
 import com.back.fairytale.domain.user.dto.TokenPairDto
 import com.back.fairytale.domain.user.entity.User
 import com.back.fairytale.domain.user.repository.UserRepository
@@ -7,17 +9,16 @@ import com.back.fairytale.global.security.jwt.JWTProvider
 import com.back.fairytale.global.security.port.LogoutService
 import com.back.fairytale.global.security.port.UserTokenService
 import jakarta.servlet.http.Cookie
-import lombok.RequiredArgsConstructor
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.function.Supplier
 
 
 @Service
 @Transactional
 class AuthService(
     private val jwtProvider: JWTProvider,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val refreshTokenRepository: RefreshTokenRepository,
 ) : LogoutService, UserTokenService {
 
 
@@ -31,7 +32,7 @@ class AuthService(
         val newAccessToken = jwtProvider.createAccessToken(user.id!!, user.role.key)
         val newRefreshToken = jwtProvider.createRefreshToken(user.id!!, user.role.key)
 
-        user.refreshToken = newRefreshToken
+        saveOrUpdateUserToken(user.id!!, newRefreshToken)
 
         return TokenPairDto(newAccessToken, newRefreshToken)
     }
@@ -49,23 +50,23 @@ class AuthService(
             throw IllegalArgumentException("Refresh token이 유효하지 않습니다.")
         }
 
-        val userId = jwtProvider.getUserIdFromRefreshToken(refreshToken)
+        val refreshTokenEntity = refreshTokenRepository.findByToken(refreshToken!!)
+            ?: throw IllegalArgumentException("해당 유저가 존재하지 않습니다")
+
+        return refreshTokenEntity.user
+    }
+
+    override fun saveOrUpdateUserToken(userId: Long, refreshToken: String) {
         val user = findUserById(userId)
-
-        if (refreshToken != user.refreshToken) {
-            throw IllegalArgumentException("Refresh Token이 일치하지 않습니다.")
-        }
-
-        return user
+        val userToken = RefreshToken(
+            user = user,
+            token = refreshToken,
+        )
+        refreshTokenRepository.save(userToken)
     }
 
     override fun logout(userId: Long) {
-        val findUser = findUserById(userId)
-        findUser.refreshToken = null
-    }
-
-    override fun getUserToken(userId: Long): String {
-        return findUserById(userId).refreshToken!!
+        refreshTokenRepository.deleteAllByUserId(userId)
     }
 
     private fun findUserById(userId: Long): User {

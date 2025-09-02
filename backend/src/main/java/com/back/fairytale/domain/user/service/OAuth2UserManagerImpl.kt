@@ -4,7 +4,6 @@ import com.back.fairytale.domain.user.entity.User
 import com.back.fairytale.domain.user.enums.IsDeleted
 import com.back.fairytale.domain.user.enums.Role
 import com.back.fairytale.domain.user.repository.UserRepository
-import com.back.fairytale.global.security.jwt.JWTProvider
 import com.back.fairytale.global.security.oauth2.OAuth2UserInfo
 import com.back.fairytale.global.security.port.OAuth2UserManager
 import org.springframework.stereotype.Service
@@ -13,8 +12,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 @Transactional
 class OAuth2UserManagerImpl(
-    private val userRepository: UserRepository,
-    private val jwtProvider: JWTProvider
+    private val userRepository: UserRepository
 ) : OAuth2UserManager {
 
     override fun saveOrUpdateUser(userInfo: MutableMap<String, Any>): OAuth2UserInfo {
@@ -26,12 +24,6 @@ class OAuth2UserManagerImpl(
         val user = userRepository.findBySocialId(socialId)?.update(name, nickname, email) ?: createUser(socialId, name, nickname, email)
 
         val savedUser = userRepository.save(user)
-        val newRefreshToken = jwtProvider.createRefreshToken(
-            userId = savedUser.id!!,
-            role = savedUser.role.key
-        )
-
-        savedUser.refreshToken = newRefreshToken
 
         return OAuth2UserInfo(
             id = savedUser.id!!,
