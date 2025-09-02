@@ -14,6 +14,9 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
+
 
 @Component
 class JwtAuthenticationFilter(
@@ -25,7 +28,14 @@ class JwtAuthenticationFilter(
 
     companion object {
         private val log = LoggerFactory.getLogger(JwtAuthenticationFilter::class.java)
-        private val SAFE_METHODS = setOf("GET", "HEAD", "OPTIONS", "TRACE")
+        private val SAFE_METHODS = setOf("GET", "OPTIONS")
+        private const val TOKEN_GRACE_PERIOD_SECONDS = 10L
+    }
+
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean {
+        return request.requestURI.startsWith("/h2-console") ||
+                request.requestURI.startsWith("/swagger") ||
+                request.requestURI.startsWith("/favicon.ico")
     }
 
     override fun doFilterInternal(
@@ -81,26 +91,48 @@ class JwtAuthenticationFilter(
         }
 
         val user = optionalUser.get()
-        if (refreshToken != user.refreshToken) {
-            log.info("이미 갱신된 토큰 요청. 사용자 ID: {}", userId)
-            issueAccessToken(user, response)
-            saveAuthenticate(user, request, response, filterChain)
-            return
+
+        when {
+            refreshToken == user.refreshToken -> {
+                log.info("정상적인 토큰 재발급. 사용자 ID: {}", userId)
+
+                val oldRefreshToken = user.refreshToken
+                val newAccessToken = jwtProvider.createAccessToken(user.id!!, user.role.key)
+                val newRefreshToken = jwtProvider.createRefreshToken(user.id!!, user.role.key)
+
+                user.refreshToken = newRefreshToken
+                user.previousRefreshToken = oldRefreshToken
+                user.refreshTokenUpdatedAt = LocalDateTime.now()
+                userRepository.save(user)
+
+                response.apply {
+                    addCookie(jwtProvider.wrapAccessTokenToCookie(newAccessToken))
+                    addCookie(jwtProvider.wrapRefreshTokenToCookie(newRefreshToken))
+                }
+
+                log.info("토큰 재발급 완료. 사용자 ID: {}", userId)
+                saveAuthenticate(user, request, response, filterChain)
+            }
+
+            isWithinGracePeriod(refreshToken, user) -> {
+                log.info("유예 기간 내 이전 토큰 사용. 액세스 토큰만 재발급. 사용자 ID: {}", userId)
+                issueAccessToken(user, response)
+                saveAuthenticate(user, request, response, filterChain)
+            }
+
+            else -> {
+                log.warn("유효하지 않은 리프레시 토큰. 사용자 ID: {}", userId)
+                response.status = HttpServletResponse.SC_UNAUTHORIZED
+            }
         }
+    }
 
-        val newAccessToken = jwtProvider.createAccessToken(user.id!!, user.role.key)
-        val newRefreshToken = jwtProvider.createRefreshToken(user.id!!, user.role.key)
+    private fun isWithinGracePeriod(requestedToken: String, user: User): Boolean {
+        val previousToken = user.previousRefreshToken ?: return false
+        val updatedAt = user.refreshTokenUpdatedAt ?: return false
 
-        user.refreshToken = newRefreshToken
-        userRepository.save(user)
-
-        response.apply {
-            addCookie(jwtProvider.wrapAccessTokenToCookie(newAccessToken))
-            addCookie(jwtProvider.wrapRefreshTokenToCookie(newRefreshToken))
-        }
-
-        log.info("토큰 재발급 완료. 사용자 ID: {}", userId)
-        saveAuthenticate(user, request, response, filterChain)
+        return requestedToken == previousToken &&
+                ChronoUnit.SECONDS.between(updatedAt, LocalDateTime.now()) <= TOKEN_GRACE_PERIOD_SECONDS
     }
 
     private fun saveAuthenticate(

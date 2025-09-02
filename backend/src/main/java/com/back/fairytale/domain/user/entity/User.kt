@@ -10,6 +10,7 @@ import lombok.AccessLevel
 import lombok.AllArgsConstructor
 import lombok.Builder
 import lombok.NoArgsConstructor
+import java.time.LocalDateTime
 
 
 @Entity
@@ -41,6 +42,14 @@ class User(
 
     @Column(unique = true, columnDefinition = "TEXT")
     var refreshToken: String? = null,
+
+    // Grace Period를 위한 이전 리프레시 토큰 저장
+    @Column(columnDefinition = "TEXT")
+    var previousRefreshToken: String? = null,
+
+    // 리프레시 토큰 업데이트 시간
+    @Column
+    var refreshTokenUpdatedAt: LocalDateTime? = null
 ) : BaseEntity() {
 
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
