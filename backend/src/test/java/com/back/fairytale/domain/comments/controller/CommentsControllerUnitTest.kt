@@ -44,7 +44,7 @@ import java.time.LocalDateTime
     ]
 )
 @AutoConfigureMockMvc(addFilters = false)
-class CommentsControllerTest {
+class CommentsControllerUnitTest {
 
     @Autowired
     private lateinit var mockMvc: MockMvc
@@ -241,7 +241,7 @@ class CommentsControllerTest {
         }
 
         @Test
-        @DisplayName("POST /api/fairytales/{fairytaleId}/comments - fairytaleId 불일치 실패")
+        @DisplayName("POST /api/fairytales/{fairytaleId}/comments - URL과 요청 본문의 동화Id 일치확인 실패")
         fun createCommentsFailureFairytaleIdMismatch() {
             // URL의 fairytaleId와 요청 body의 fairytaleId가 다른 경우
             val mismatchRequest = commentsRequest.copy(fairytaleId = 999L)
@@ -262,7 +262,7 @@ class CommentsControllerTest {
                     }
                     .with(csrf())
             )
-                .andExpect(status().isInternalServerError) // IllegalArgumentException → 500
+                .andExpect(status().isBadRequest)
 
             // Service 메서드는 호출되지 않아야 함 (Controller에서 검증 실패)
             verify(exactly = 0) { commentsService.createComments(any(), any()) }

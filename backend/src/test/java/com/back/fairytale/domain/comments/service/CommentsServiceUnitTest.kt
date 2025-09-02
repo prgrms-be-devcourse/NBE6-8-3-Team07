@@ -26,7 +26,7 @@ import java.util.*
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension::class)
-class CommentsServiceTest {
+class CommentsServiceUnitTest {
 
     @Mock
     private lateinit var commentsRepository: CommentsRepository

@@ -41,7 +41,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
         )
     ]
 )
-class ThoughtsControllerTest {
+class ThoughtsControllerUnitTest {
 
     @Autowired
     private lateinit var mockMvc: MockMvc
