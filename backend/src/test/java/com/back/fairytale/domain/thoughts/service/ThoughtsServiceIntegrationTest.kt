@@ -40,6 +40,7 @@ class ThoughtsServiceIntegrationTest @Autowired constructor(
     private val fairytaleRepository: FairytaleRepository
 ) {
 
+    // Spring Boot Test(Spring Context)에서 MockkBean을 사용하여 필요한 의존성 주입
     @MockkBean
     private lateinit var geminiClient: GeminiClient
 
@@ -51,15 +52,6 @@ class ThoughtsServiceIntegrationTest @Autowired constructor(
 
     @MockkBean
     private lateinit var storage: Storage
-
-    @MockkBean
-    private lateinit var authService: AuthService
-
-    @MockkBean
-    private lateinit var jwtProvider: JWTProvider
-
-    @MockkBean
-    private lateinit var jwtUtil: JWTUtil
 
     private lateinit var user: User
     private lateinit var otherUser: User
