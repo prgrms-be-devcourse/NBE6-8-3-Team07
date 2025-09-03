@@ -24,7 +24,10 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestMethodOrder
 import org.junit.jupiter.api.assertNotNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -32,6 +35,7 @@ import org.springframework.test.context.ActiveProfiles
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 
+@TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 @SpringBootTest(classes = [BackendApplication::class])
 @ActiveProfiles("test")
 class LikeServiceTest @Autowired constructor(
@@ -89,18 +93,31 @@ class LikeServiceTest @Autowired constructor(
     }
 
     @Test
-    @DisplayName("Redis 분산락 - 1000명이 동시에 좋아요 요청")
-    fun concurrentLikesWithRedisLock() {
+    @Order(1)
+    @DisplayName("비관적 락 - 1000이 동시에 좋아요 요청")
+    fun concurrentLikesWithPessimisticLock_MultipleUsers() {
         val threadCount = 1000
-        val executor = Executors.newFixedThreadPool(200)
+        val executor = Executors.newFixedThreadPool(32)
         val latch = CountDownLatch(threadCount)
+
+        // 1000명 유저 생성
+        val users = (1..threadCount).map { i ->
+            userRepository.save(
+                User(
+                    email = "user$i@test.com",
+                    name = "User$i",
+                    nickname = "nick$i",
+                    socialId = "social$i"
+                )
+            )
+        }
 
         val startTime = System.currentTimeMillis()
 
-        for (i in 1..threadCount) {
+        for (i in 0 until threadCount) {
             executor.submit {
                 try {
-                    likeService.addLike(user.id!!, fairytale.id!!)
+                    likeService.addLikePessimistic(users[i].id!!, fairytale.id!!)
                 } catch (e: Exception) {
                     // 중복 예외 등 무시
                 } finally {
@@ -116,22 +133,35 @@ class LikeServiceTest @Autowired constructor(
         println("총 소요 시간: ${endTime - startTime} ms")
         println("=========================================")
 
-        assertEquals(1, likeRepository.count())
+        assertEquals(threadCount, likeRepository.count().toInt())
     }
 
     @Test
-    @DisplayName("비관적 락 - 1000명이 동시에 좋아요 요청")
-    fun concurrentLikesWithPessimisticLock() {
+    @Order(2)
+    @DisplayName("Redis 분산락 - 1000명이 동시에 좋아요 요청")
+    fun concurrentLikesWithRedisLock_MultipleUsers() {
         val threadCount = 1000
-        val executor = Executors.newFixedThreadPool(200)
+        val executor = Executors.newFixedThreadPool(32)
         val latch = CountDownLatch(threadCount)
+
+        // 1000명 유저 생성
+        val users = (1..threadCount).map { i ->
+            userRepository.save(
+                User(
+                    email = "user$i@test.com",
+                    name = "User$i",
+                    nickname = "nick$i",
+                    socialId = "social$i"
+                )
+            )
+        }
 
         val startTime = System.currentTimeMillis()
 
-        for (i in 1..threadCount) {
+        for (i in 0 until threadCount) {
             executor.submit {
                 try {
-                    likeService.addLikePessimistic(user.id!!, fairytale.id!!)
+                    likeService.addLike(users[i].id!!, fairytale.id!!)
                 } catch (e: Exception) {
                     // 중복 예외 등 무시
                 } finally {
@@ -147,7 +177,7 @@ class LikeServiceTest @Autowired constructor(
         println("총 소요 시간: ${endTime - startTime} ms")
         println("=========================================")
 
-        assertEquals(1, likeRepository.count())
+        assertEquals(threadCount, likeRepository.count().toInt())
     }
 
     @Test
