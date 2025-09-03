@@ -21,8 +21,7 @@ class Fairytale(
     var title: String,
 
     @Lob
-    @Column(nullable = false) // 기본 CLOB 타입
-    // @Column(nullable = false, length = 10000) // 검색기능 성능테스트 실행시 VARCHAR로 변경
+    @Column(nullable = false)
     var content: String,
 
     @Column(name = "image_url", length = 255)

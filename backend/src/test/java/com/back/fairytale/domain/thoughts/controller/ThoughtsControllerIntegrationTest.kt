@@ -34,6 +34,8 @@ import org.springframework.web.context.WebApplicationContext
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
+import org.springframework.test.annotation.DirtiesContext
+
 
 @SpringBootTest(
     classes = [BackendApplication::class],
@@ -41,8 +43,8 @@ import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequ
 )
 @ActiveProfiles("test")
 @Transactional
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class ThoughtsControllerIntegrationTest {
-
 
     @Autowired
     private lateinit var webApplicationContext: WebApplicationContext
@@ -81,14 +83,14 @@ class ThoughtsControllerIntegrationTest {
 
     @BeforeEach
     fun setUp() {
+        thoughtsRepository.deleteAllInBatch()
+        fairytaleRepository.deleteAllInBatch()
+        userRepository.deleteAllInBatch()
+
         mockMvc = MockMvcBuilders
             .webAppContextSetup(webApplicationContext)
             .apply<org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder>(springSecurity())
             .build()
-
-        thoughtsRepository.deleteAll()
-        fairytaleRepository.deleteAll()
-        userRepository.deleteAll()
 
         user = User(
             email = "test@naver.com",
@@ -366,6 +368,7 @@ class ThoughtsControllerIntegrationTest {
         // When & Then
         mockMvc.perform(
             delete("/api/thoughts/{id}", thoughts.id)
+                .contentType(MediaType.APPLICATION_JSON)
                 .with(authentication(OAuth2AuthenticationToken(
                     mockCustomOAuth2User,
                     listOf(SimpleGrantedAuthority("ROLE_USER")),
@@ -401,6 +404,7 @@ class ThoughtsControllerIntegrationTest {
         // When & Then
         mockMvc.perform(
             delete("/api/thoughts/{id}", thoughts.id)
+                .contentType(MediaType.APPLICATION_JSON)
                 .with(authentication(OAuth2AuthenticationToken(
                     otherUserOAuth2User,
                     listOf(SimpleGrantedAuthority("ROLE_USER")),
