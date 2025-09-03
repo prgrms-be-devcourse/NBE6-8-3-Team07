@@ -18,7 +18,6 @@ import com.back.fairytale.global.security.jwt.JWTUtil
 import com.back.fairytale.global.util.impl.GoogleCloudStorage
 import com.google.cloud.storage.Storage
 import com.ninjasquad.springmockk.MockkBean
-import jakarta.transaction.Transactional
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -30,12 +29,12 @@ import org.junit.jupiter.api.assertNotNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.TestPropertySource
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
 
 @SpringBootTest(classes = [BackendApplication::class])
 @ActiveProfiles("test")
-@Transactional
-class LikeServiceIntegrationTest @Autowired constructor(
+class LikeServiceTest @Autowired constructor(
     private val likeService: LikeService,
     private val likeRepository: LikeRepository,
     private val userRepository: UserRepository,
@@ -87,6 +86,68 @@ class LikeServiceIntegrationTest @Autowired constructor(
             imageUrl = "www.naver.com"
         )
         fairytaleRepository.save(fairytale)
+    }
+
+    @Test
+    @DisplayName("Redis 분산락 - 1000명이 동시에 좋아요 요청")
+    fun concurrentLikesWithRedisLock() {
+        val threadCount = 1000
+        val executor = Executors.newFixedThreadPool(200)
+        val latch = CountDownLatch(threadCount)
+
+        val startTime = System.currentTimeMillis()
+
+        for (i in 1..threadCount) {
+            executor.submit {
+                try {
+                    likeService.addLike(user.id!!, fairytale.id!!)
+                } catch (e: Exception) {
+                    // 중복 예외 등 무시
+                } finally {
+                    latch.countDown()
+                }
+            }
+        }
+
+        latch.await()
+        val endTime = System.currentTimeMillis()
+
+        println("=========================================")
+        println("총 소요 시간: ${endTime - startTime} ms")
+        println("=========================================")
+
+        assertEquals(1, likeRepository.count())
+    }
+
+    @Test
+    @DisplayName("비관적 락 - 1000명이 동시에 좋아요 요청")
+    fun concurrentLikesWithPessimisticLock() {
+        val threadCount = 1000
+        val executor = Executors.newFixedThreadPool(200)
+        val latch = CountDownLatch(threadCount)
+
+        val startTime = System.currentTimeMillis()
+
+        for (i in 1..threadCount) {
+            executor.submit {
+                try {
+                    likeService.addLikePessimistic(user.id!!, fairytale.id!!)
+                } catch (e: Exception) {
+                    // 중복 예외 등 무시
+                } finally {
+                    latch.countDown()
+                }
+            }
+        }
+
+        latch.await()
+        val endTime = System.currentTimeMillis()
+
+        println("=========================================")
+        println("총 소요 시간: ${endTime - startTime} ms")
+        println("=========================================")
+
+        assertEquals(1, likeRepository.count())
     }
 
     @Test
