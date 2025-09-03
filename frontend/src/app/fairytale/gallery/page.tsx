@@ -38,6 +38,8 @@ export default function FairytaleGallery() {
   );
   const [currentPage, setCurrentPage] = useState(0);
   const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [isSearchMode, setIsSearchMode] = useState(false);
   const router = useRouter();
   const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -107,6 +109,65 @@ export default function FairytaleGallery() {
     }
   };
 
+  const handleSearch = async (page: number = 0, keyword?: string) => {
+    const searchTerm = keyword || searchKeyword;
+    
+    // 2글자 미만이면 함수 실행하지 않음
+    if (searchTerm.trim().length < 2) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      setIsSearchMode(true);
+
+      const response = await customFetch(
+        `${NEXT_PUBLIC_API_BASE_URL}/api/fairytales/search?keyword=${encodeURIComponent(searchTerm.trim())}&page=${page}&size=6`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      setFairytales(data.content);
+      setPageInfo({
+        content: data.content,
+        totalElements: data.totalElements,
+        totalPages: data.totalPages,
+        currentPage: data.number,
+        size: data.size,
+      });
+      setCurrentPage(page);
+    } catch (err) {
+      console.error("Error searching fairytales:", err);
+      setError("검색 중 오류가 발생했습니다.");
+      setFairytales([]);
+      setPageInfo(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchKeyword("");
+    setIsSearchMode(false);
+    setCurrentPage(0);
+    fetchFairytales(0);
+  };
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && searchKeyword.trim().length >= 2) {
+      setCurrentPage(0);
+      handleSearch(0);
+    }
+  };
+
   const toggleLike = async (fairytaleId: number) => {
     try {
       const isCurrentlyLiked = likedFairytales.has(fairytaleId);
@@ -150,7 +211,11 @@ export default function FairytaleGallery() {
   };
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    if (isSearchMode) {
+      handleSearch(page);
+    } else {
+      setCurrentPage(page);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -286,10 +351,46 @@ export default function FairytaleGallery() {
         <section className="max-w-5xl mx-auto px-6">
           <div className="flex justify-center items-center h-64">
             <div className="text-2xl text-gray-600">
-              📚 아직 등록된 동화가 없습니다.
+              {isSearchMode ? "🔍 검색 결과가 없습니다" : "📚 아직 등록된 동화가 없습니다."}
             </div>
           </div>
         </section>
+
+        {/* 검색 바 - 검색 모드일 때만 표시 */}
+        {isSearchMode && (
+          <section className="max-w-5xl mx-auto px-6 py-8">
+            <div className="flex justify-center">
+              <div className="max-w-md relative w-full">
+                <input
+                  type="text"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  onKeyPress={handleSearchKeyPress}
+                  placeholder="동화를 검색해보세요 (2글자 이상)"
+                  className="w-full px-4 py-2 text-lg border-2 border-orange-300 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 bg-white shadow-md"
+                />
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
+                  <button
+                    onClick={clearSearch}
+                    className="bg-gray-500 text-white px-3 py-1 rounded-md hover:bg-gray-600 transition-colors text-sm cursor-pointer"
+                  >
+                    초기화
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCurrentPage(0);
+                      handleSearch(0);
+                    }}
+                    disabled={isLoading || searchKeyword.trim().length < 2}
+                    className="bg-orange-500 text-white px-3 py-1 rounded-md hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm cursor-pointer"
+                  >
+                    {isLoading ? "검색중..." : "검색"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
       </main>
     );
   }
@@ -304,14 +405,28 @@ export default function FairytaleGallery() {
         </div>
       </section>
 
+
       <section className="max-w-5xl mx-auto px-6">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-orange-400 mb-4">
-            우리 아이들의 특별한 이야기들
-          </h2>
-          <p className="text-lg text-gray-600">
-            아이와 함께 만든 소중한 동화들을 모아봤어요
-          </p>
+          {isSearchMode ? (
+            <>
+              <h2 className="text-3xl font-bold text-orange-400 mb-4">
+                검색 결과
+              </h2>
+              <p className="text-lg text-gray-600">
+                <span className="font-bold text-orange-600">"{searchKeyword.trim()}"</span>에 대한 검색 결과입니다
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-3xl font-bold text-orange-400 mb-4">
+                우리 아이들의 특별한 이야기들
+              </h2>
+              <p className="text-lg text-gray-600">
+                아이와 함께 만든 소중한 동화들을 모아봤어요
+              </p>
+            </>
+          )}
           {pageInfo && (
             <p className="text-sm text-gray-500 mt-2">
               총 {pageInfo.totalElements}개의 동화 중 {pageInfo.currentPage + 1}
@@ -439,6 +554,42 @@ export default function FairytaleGallery() {
 
         {/* 페이징 컴포넌트 */}
         {renderPagination()}
+      </section>
+
+      {/* 검색 바 - 하단 */}
+      <section className="max-w-5xl mx-auto px-6 py-8">
+        <div className="flex justify-center">
+          <div className="max-w-md relative w-full">
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              onKeyPress={handleSearchKeyPress}
+              placeholder="동화를 검색해보세요 (2글자 이상)"
+              className="w-full px-4 py-2 text-lg border-2 border-orange-300 rounded-lg focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 bg-white shadow-md"
+            />
+            <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
+              {isSearchMode && (
+                <button
+                  onClick={clearSearch}
+                  className="bg-gray-500 text-white px-3 py-1 rounded-md hover:bg-gray-600 transition-colors text-sm cursor-pointer"
+                >
+                  초기화
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setCurrentPage(0);
+                  handleSearch(0);
+                }}
+                disabled={isLoading || searchKeyword.trim().length < 2}
+                className="bg-orange-500 text-white px-3 py-1 rounded-md hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm cursor-pointer"
+              >
+                {isLoading ? "검색중..." : "검색"}
+              </button>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
   );

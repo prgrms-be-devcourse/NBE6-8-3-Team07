@@ -106,17 +106,13 @@ export default function ClientLayout({
           </Link>
           <nav className="flex items-center space-x-8">
             <div className="relative group">
-              <button
+              <Link
+                href="/fairytale/get"
+                onClick={handleProtectedLinkClick}
                 className="cursor-pointer py-2"
-                onClick={(e) => {
-                  if (!isLoggedIn) {
-                    e.preventDefault();
-                    setShowLoginRequiredPopup(true);
-                  }
-                }}
               >
                 나의 동화책
-              </button>
+              </Link>
               <div className="absolute z-50 hidden group-hover:block bg-[#FAF9F6] shadow-lg rounded-md mt-0 py-1 w-full min-w-max left-1/2 -translate-x-1/2">
                 <Link
                   href="/fairytale/post"
