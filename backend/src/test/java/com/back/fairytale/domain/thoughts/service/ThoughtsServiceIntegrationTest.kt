@@ -3,6 +3,7 @@ package com.back.fairytale.domain.thoughts.service
 import com.back.BackendApplication
 import com.back.fairytale.domain.fairytale.entity.Fairytale
 import com.back.fairytale.domain.fairytale.repository.FairytaleRepository
+import com.back.fairytale.domain.like.repository.LikeRepository
 import com.back.fairytale.domain.thoughts.dto.ThoughtsRequest
 import com.back.fairytale.domain.thoughts.dto.ThoughtsUpdateRequest
 import com.back.fairytale.domain.thoughts.entity.Thoughts
@@ -39,7 +40,8 @@ class ThoughtsServiceIntegrationTest @Autowired constructor(
     private val thoughtsService: ThoughtsService,
     private val thoughtsRepository: ThoughtsRepository,
     private val userRepository: UserRepository,
-    private val fairytaleRepository: FairytaleRepository
+    private val fairytaleRepository: FairytaleRepository,
+    private val likeRepository: LikeRepository
 ) {
 
     // Spring Boot Test(Spring Context)에서 MockkBean을 사용하여 필요한 의존성 주입
@@ -62,6 +64,7 @@ class ThoughtsServiceIntegrationTest @Autowired constructor(
     @BeforeEach
     fun setUp() {
         thoughtsRepository.deleteAllInBatch()
+        likeRepository.deleteAllInBatch()
         fairytaleRepository.deleteAllInBatch()
         userRepository.deleteAllInBatch()
 
