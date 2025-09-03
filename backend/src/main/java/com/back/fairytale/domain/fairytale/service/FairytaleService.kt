@@ -124,10 +124,6 @@ class FairytaleService(
     fun getPublicFairytalesForGallery(pageable: Pageable): Page<FairytalePublicListResponse> {
         val publicFairytales = fairytaleRepository.findPublicFairytalesForGallery(pageable)
 
-        if (publicFairytales.totalElements == 0L) {
-            throw FairytaleNotFoundException("공개된 동화가 없습니다.")
-        }
-
         log.info("갤러리 공개 동화 조회 - 총 {}개의 동화를 조회했습니다.", publicFairytales.totalElements)
         return publicFairytales.map { FairytalePublicListResponse(it) }
     }
