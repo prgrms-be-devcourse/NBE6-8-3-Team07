@@ -370,6 +370,7 @@ class CommentsControllerIntegrationTest {
         // When & Then
         mockMvc.perform(
             delete("/api/comments/{id}", comment.id)
+                .contentType(MediaType.APPLICATION_JSON)
                 .with(authentication(OAuth2AuthenticationToken(
                     mockCustomOAuth2User,
                     listOf(SimpleGrantedAuthority("ROLE_USER")),
@@ -403,6 +404,7 @@ class CommentsControllerIntegrationTest {
         // When & Then
         mockMvc.perform(
             delete("/api/comments/{id}", comment.id)
+                .contentType(MediaType.APPLICATION_JSON)
                 .with(authentication(OAuth2AuthenticationToken(
                     otherUserOAuth2User,
                     listOf(SimpleGrantedAuthority("ROLE_USER")),
@@ -445,6 +447,7 @@ class CommentsControllerIntegrationTest {
         // When & Then
         mockMvc.perform(
             delete("/api/comments/{id}", 999L)
+                .contentType(MediaType.APPLICATION_JSON)
                 .with(authentication(OAuth2AuthenticationToken(
                     mockCustomOAuth2User,
                     listOf(SimpleGrantedAuthority("ROLE_USER")),

@@ -13,11 +13,23 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
+import com.ninjasquad.springmockk.MockkBean
+import com.back.fairytale.global.util.impl.GoogleCloudStorage
+import com.google.cloud.storage.Storage
 import org.springframework.transaction.annotation.Transactional
 
 @SpringBootTest
+@ActiveProfiles("test")
 @Transactional
 class KeywordServiceIntegrationTest {
+
+    // GoogleCloudStorage와 Storage는 실제 GCP와의 상호작용을 피하기 위해 MockkBean으로 모킹합니다.
+    @MockkBean
+    private lateinit var googleCloudStorage: GoogleCloudStorage
+
+    @MockkBean
+    private lateinit var storage: Storage
 
     @Autowired
     private lateinit var keywordService: KeywordService

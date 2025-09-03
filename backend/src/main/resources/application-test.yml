@@ -1,8 +1,9 @@
 spring:
+  autoconfigure:
+    exclude: org.redisson.spring.starter.RedissonAutoConfigurationV2
   data:
     redis:
       host: localhost
-      port: 6379
   # 동화 생성 테스트 때문에 아래 가짜 값으로 테스트 환경 설정
   security:
     oauth2:

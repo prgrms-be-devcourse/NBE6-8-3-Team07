@@ -74,6 +74,11 @@ dependencies {
     // Kotlin용 Mock 라이브러리
     testImplementation("io.mockk:mockk:1.13.8")
     testImplementation("com.ninja-squad:springmockk:4.0.2") // MockK와 Spring 통합
+    
+    // 테스트용 내장 Redis
+    testImplementation("it.ozimov:embedded-redis:0.7.3") {
+        exclude(group = "org.slf4j", module = "slf4j-simple")
+    }
 }
 
 kotlin {
