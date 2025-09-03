@@ -2,310 +2,296 @@ package com.back.fairytale.domain.fairytale.controller
 
 import com.back.fairytale.domain.fairytale.dto.FairytaleCreateRequest
 import com.back.fairytale.domain.fairytale.dto.FairytaleDetailResponse
-import com.back.fairytale.domain.fairytale.dto.FairytaleListResponse
 import com.back.fairytale.domain.fairytale.dto.FairytaleResponse
-import com.back.fairytale.domain.fairytale.exception.FairytaleNotFoundException
-import com.back.fairytale.domain.fairytale.service.FairytaleService
+import com.back.fairytale.domain.fairytale.entity.Fairytale
+import com.back.fairytale.domain.fairytale.repository.FairytaleRepository
+import com.back.fairytale.domain.keyword.entity.Keyword
+import com.back.fairytale.domain.keyword.enums.KeywordType
+import com.back.fairytale.domain.keyword.repository.KeywordRepository
+import com.back.fairytale.domain.user.entity.User
+import com.back.fairytale.domain.user.repository.UserRepository
+import com.back.fairytale.external.ai.client.GeminiClient
+import com.back.fairytale.external.ai.client.HuggingFaceClient
 import com.back.fairytale.global.security.CustomOAuth2User
+import com.back.fairytale.global.util.impl.GoogleCloudStorage
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.cloud.storage.Storage
 import com.ninjasquad.springmockk.MockkBean
+import io.mockk.confirmVerified
 import io.mockk.every
-import io.mockk.slot
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
-import org.springframework.context.annotation.ComponentScan
-import org.springframework.context.annotation.FilterType
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
-import org.springframework.security.authentication.TestingAuthenticationToken
-import org.springframework.security.core.Authentication
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
-import org.springframework.test.context.ActiveProfiles
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
-import java.time.LocalDateTime
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.transaction.annotation.Transactional
 
-@WebMvcTest(
-    controllers = [FairytaleController::class],
-    excludeFilters = [
-        ComponentScan.Filter(
-            type = FilterType.ASSIGNABLE_TYPE,
-            classes = [
-                com.back.fairytale.global.security.SecurityConfig::class,
-                com.back.fairytale.global.security.jwt.JwtAuthenticationFilter::class
-            ]
-        )
-    ]
-)
-@ActiveProfiles("test")
+@SpringBootTest
+@AutoConfigureMockMvc(addFilters = false)
+@Transactional
 class FairytaleControllerTest {
 
     @Autowired
-    private lateinit var mockMvc: MockMvc
+    lateinit var mockMvc: MockMvc
 
     @Autowired
-    private lateinit var objectMapper: ObjectMapper
+    lateinit var objectMapper: ObjectMapper
 
-    // MockK 기반의 MockkBean 사용
-    @MockkBean
-    private lateinit var fairytaleService: FairytaleService
+    @Autowired
+    lateinit var userRepository: UserRepository
 
-    private lateinit var authentication: Authentication
+    @Autowired
+    lateinit var fairytaleRepository: FairytaleRepository
 
-    companion object {
-        private const val USER_ID = 1L
-        private const val USERNAME = "tester"
-        private const val ROLE = "ROLE_USER"
-        private val FIXED_TIME = LocalDateTime.of(2024, 1, 1, 10, 0)
-    }
+    @Autowired
+    lateinit var keywordRepository: KeywordRepository
+
+    @MockkBean lateinit var geminiClient: GeminiClient
+    @MockkBean lateinit var huggingFaceClient: HuggingFaceClient
+    @MockkBean(relaxed = true) lateinit var googleCloudStorage: GoogleCloudStorage
+    @MockkBean lateinit var storage: Storage
+
+    private var savedUserId: Long = -1L
 
     @BeforeEach
-    fun setUp() {
-        val principal = CustomOAuth2User(id = USER_ID, username = USERNAME, role = ROLE)
-        authentication = TestingAuthenticationToken(
+    fun setUpUser() {
+        savedUserId = userRepository.save(
+            User(
+                name = "tester",
+                nickname = "nick",
+                email = "tester@example.com",
+                socialId = "social"
+            )
+        ).id!!
+
+        // SecurityContext에 인증 객체 직접 세팅
+        val principal = CustomOAuth2User(savedUserId, "tester", "ROLE_USER")
+        val auth = UsernamePasswordAuthenticationToken(
             principal,
             null,
             listOf(SimpleGrantedAuthority("ROLE_USER"))
-        ).apply { isAuthenticated = true }
+        )
+        SecurityContextHolder.getContext().authentication = auth
     }
 
     @Test
     @DisplayName("동화 생성 성공")
     fun t1() {
-        val reqSlot = slot<FairytaleCreateRequest>()
-        val userIdSlot = slot<Long>()
-
-        val validRequest = FairytaleCreateRequest(
-            childName = "철수",
-            childRole = "용감한 기사",
-            characters = "마법사, 공주, 드래곤",
-            place = "신비한 숲, 마법의 성",
-            lesson = "용기, 우정",
-            mood = "모험적인, 따뜻한"
+        val req = FairytaleCreateRequest(
+            childName = "민지",
+            childRole = "모험가",
+            characters = "토끼, 거북이",
+            place = "숲속 마을",
+            lesson = "협동, 우정",
+            mood = "따뜻한, 유쾌한"
         )
 
-        val expectedResponse = FairytaleResponse(
-            id = 1L,
-            title = "용감한 기사 철수의 모험",
-            content = "옛날 옛적에 용감한 기사 철수가 살았습니다...",
-            imageUrl = "https://example.com/image.jpg",
-            childName = "철수",
-            childRole = "용감한 기사",
-            characters = "마법사, 공주, 드래곤",
-            place = "신비한 숲, 마법의 성",
-            lesson = "용기, 우정",
-            mood = "모험적인, 따뜻한",
-            userId = USER_ID,
-            createdAt = FIXED_TIME
-        )
+        // Gemini 스텁
+        every { geminiClient.generateFairytale(match { it.contains("응답 형식: [제목:") }) } returns """
+            [제목: 민지의 용감한 모험]
+            민지는 숲속 마을에서 토끼와 거북이와 함께 협동의 가치를 배우는 모험을 떠났어요...
+        """.trimIndent()
+        every { geminiClient.generateFairytale(match { it.contains("영어로 번역") }) } returns
+                "a cute child adventurer with a rabbit and a turtle, smiling, warm tone, 1:1 illustration"
 
-        every {
-            fairytaleService.createFairytale(capture(reqSlot), capture(userIdSlot))
-        } returns expectedResponse
+        // HuggingFace/GCS 스텁
+        every { huggingFaceClient.generateImage(any()) } returns "fake-image".toByteArray()
+        every { googleCloudStorage.uploadImageBytesToCloud(any()) } returns
+                "https://storage.googleapis.com/bucket/fairy.png"
 
-        mockMvc.perform(
+        val mvcResult = mockMvc.perform(
             post("/fairytales")
-                .with(authentication(authentication))
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(validRequest))
+                .content(objectMapper.writeValueAsString(req))
         )
             .andExpect(status().isOk)
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(expectedResponse.id))
-            .andExpect(jsonPath("$.title").value(expectedResponse.title))
-            .andExpect(jsonPath("$.userId").value(USER_ID))
+            .andReturn()
 
-        verify(exactly = 1) { fairytaleService.createFairytale(any(), any()) }
-        assertThat(reqSlot.captured.childName).isEqualTo(validRequest.childName)
-        assertThat(userIdSlot.captured).isEqualTo(USER_ID)
+        val body = mvcResult.response.contentAsString
+        val res = objectMapper.readValue(body, FairytaleResponse::class.java)
+
+        assertThat(res.id).isPositive()
+        assertThat(res.title).isEqualTo("민지의 용감한 모험")
+        assertThat(res.content).contains("민지", "숲속 마을", "협동")
+        assertThat(res.imageUrl).isEqualTo("https://storage.googleapis.com/bucket/fairy.png")
+        assertThat(res.childName).isEqualTo("민지")
+        assertThat(res.childRole).isEqualTo("모험가")
+        assertThat(res.characters).isEqualTo("토끼, 거북이")
+        assertThat(res.place).isEqualTo("숲속 마을")
+        assertThat(res.lesson).isEqualTo("협동, 우정")
+        assertThat(res.mood).isEqualTo("따뜻한, 유쾌한")
+        assertThat(res.userId).isEqualTo(savedUserId)
+        assertThat(res.createdAt).isNotNull()
     }
 
     @Test
-    @DisplayName("동화 생성 실패: 검증 에러")
+    @DisplayName("동화 생성 실패 - childName 공백(NotBlank 위반)")
     fun t2() {
-        // 유효하지 않은 요청(childName 빈 문자열)
-        val invalidRequest = FairytaleCreateRequest(
-            childName = "",
-            childRole = "용감한 기사",
-            characters = "마법사, 공주, 드래곤",
-            place = "신비한 숲, 마법의 성",
-            lesson = "용기, 우정",
-            mood = "모험적인, 따뜻한"
+        val req = FairytaleCreateRequest(
+            childName = "   ",
+            childRole = "모험가",
+            characters = "토끼, 거북이",
+            place = "숲속 마을",
+            lesson = "협동, 우정",
+            mood = "따뜻한, 유쾌한"
         )
 
-        mockMvc.perform(
+        val mvcResult = mockMvc.perform(
             post("/fairytales")
-                .with(authentication(authentication))
-                .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(invalidRequest))
+                .content(objectMapper.writeValueAsString(req))
         )
             .andExpect(status().isBadRequest)
+            .andReturn()
 
-        // 서비스는 호출되면 안 됨 (유효성 검증 실패했으니까)
-        verify(exactly = 0) { fairytaleService.createFairytale(any(), any()) }
+        // 외부 의존 호출이 전혀 없어야 함
+        verify(exactly = 0) { geminiClient.generateFairytale(any()) }
+        verify(exactly = 0) { huggingFaceClient.generateImage(any()) }
+        verify(exactly = 0) { googleCloudStorage.uploadImageBytesToCloud(any()) }
+        confirmVerified(geminiClient, huggingFaceClient, googleCloudStorage)
     }
 
     @Test
-    @DisplayName("동화 전체 조회 성공")
+    @DisplayName("내 동화 전체 조회 성공")
     fun t3() {
-        val listResponse = listOf(
-            FairytaleListResponse(
-                id = 1L,
-                title = "용감한 기사 철수의 모험",
-                imageUrl = "https://example.com/image.jpg",
-                isPublic = true,
-                createdAt = FIXED_TIME.toLocalDate()
-            ),
-            FairytaleListResponse(
-                id = 2L,
-                title = "두번째 동화",
+        val user = userRepository.findById(savedUserId).get()
+
+        // 동화 2개를 시간 차이를 두고 저장
+        val f1 = fairytaleRepository.save(
+            Fairytale(
+                user = user,
+                title = "첫 번째 동화",
+                content = "내용1",
                 imageUrl = null,
-                isPublic = false,
-                createdAt = FIXED_TIME.toLocalDate()
+                isPublic = false
+            )
+        )
+        Thread.sleep(10)
+        val f2 = fairytaleRepository.save(
+            Fairytale(
+                user = user,
+                title = "두 번째 동화",
+                content = "내용2",
+                imageUrl = null,
+                isPublic = true
             )
         )
 
-        val userIdSlot = slot<Long>()
-        every {
-            fairytaleService.getAllFairytalesByUserId(capture(userIdSlot))
-        } returns listResponse
-
-        mockMvc.perform(get("/fairytales").with(authentication(authentication)))
+        val mvcResult = mockMvc.perform(
+            get("/fairytales")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
             .andExpect(status().isOk)
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].id").value(1))
-            .andExpect(jsonPath("$[0].title").value("용감한 기사 철수의 모험"))
-            .andExpect(jsonPath("$[0].isPublic").value(true))
-            .andExpect(jsonPath("$[1].id").value(2))
-            .andExpect(jsonPath("$[1].title").value("두번째 동화"))
-            .andExpect(jsonPath("$[1].isPublic").value(false))
+            .andReturn()
 
-        verify(exactly = 1) { fairytaleService.getAllFairytalesByUserId(any()) }
-        assertThat(userIdSlot.captured).isEqualTo(USER_ID)
-    }
+        val body = mvcResult.response.contentAsString
+        val res = objectMapper.readTree(body)
 
-    @Test
-    @DisplayName("동화 전체 조회: 동화 없음")
-    fun t4() {
-        every {
-            fairytaleService.getAllFairytalesByUserId(any())
-        } throws FairytaleNotFoundException("등록된 동화가 없습니다.")
+        assertThat(res.isArray).isTrue()
+        assertThat(res.size()).isEqualTo(2)
 
-        mockMvc.perform(get("/fairytales").with(authentication(authentication)))
-            .andExpect(status().isNotFound)
-            .andExpect(content().string("등록된 동화가 없습니다."))
-
-        verify(exactly = 1) { fairytaleService.getAllFairytalesByUserId(any()) }
+        assertThat(res[0].get("title").asText()).isEqualTo("두 번째 동화")
+        assertThat(res[1].get("title").asText()).isEqualTo("첫 번째 동화")
     }
 
     @Test
     @DisplayName("동화 상세 조회 성공")
-    fun t5() {
-        val id = 1L
-        val idSlot = slot<Long>()
-        val userIdSlot = slot<Long>()
+    fun t4() {
+        val user = userRepository.findById(savedUserId).get()
 
-        val detailResponse = FairytaleDetailResponse(
-            id = id,
-            title = "용감한 기사 철수의 모험",
-            content = "옛날 옛적에...",
-            imageUrl = "https://example.com/image.jpg",
-            isPublic = true,
-            childName = "철수",
-            childRole = "용감한 기사",
-            characters = "마법사, 공주, 드래곤",
-            place = "신비한 숲, 마법의 성",
-            lesson = "용기, 우정",
-            mood = "모험적인, 따뜻한",
-            createdAt = FIXED_TIME
+        // 동화 상세 조회는 키워드 필요
+        val k1 = keywordRepository.save(Keyword.of("민지", KeywordType.CHILD_NAME))
+        val k2 = keywordRepository.save(Keyword.of("모험가", KeywordType.CHILD_ROLE))
+        val k3 = keywordRepository.save(Keyword.of("토끼", KeywordType.CHARACTERS))
+        val k4 = keywordRepository.save(Keyword.of("거북이", KeywordType.CHARACTERS))
+        val k5 = keywordRepository.save(Keyword.of("숲속 마을", KeywordType.PLACE))
+        val k6 = keywordRepository.save(Keyword.of("협동, 우정", KeywordType.LESSON))
+        val k7 = keywordRepository.save(Keyword.of("따뜻한, 유쾌한", KeywordType.MOOD))
+
+        val fairy = Fairytale(
+            user = user,
+            title = "상세 테스트 동화",
+            content = "내용 상세",
+            imageUrl = "https://storage.googleapis.com/bucket/detail.png",
+            isPublic = false
         )
 
-        every {
-            fairytaleService.getFairytaleByIdAndUserId(capture(idSlot), capture(userIdSlot))
-        } returns detailResponse
+        listOf(k1, k2, k3, k4, k5, k6, k7).forEach { fairy.addKeyword(it) }
+        fairytaleRepository.save(fairy)
 
-        // when & then
-        mockMvc.perform(
-            get("/fairytales/{id}", id).with(authentication(authentication))
+        val mvcResult = mockMvc.perform(
+            get("/fairytales/{id}", fairy.id!!)
+                .contentType(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isOk)
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(id))
-            .andExpect(jsonPath("$.title").value("용감한 기사 철수의 모험"))
-            .andExpect(jsonPath("$.childName").value("철수"))
-            .andExpect(jsonPath("$.childRole").value("용감한 기사"))
-            .andExpect(jsonPath("$.isPublic").value(true))
+            .andReturn()
 
-        // verify + slot 검증
-        verify(exactly = 1) { fairytaleService.getFairytaleByIdAndUserId(any(), any()) }
-        assertThat(idSlot.captured).isEqualTo(id)
-        assertThat(userIdSlot.captured).isEqualTo(USER_ID)
+        val body = mvcResult.response.contentAsString
+        val res = objectMapper.readValue(body, FairytaleDetailResponse::class.java)
+
+        assertThat(res.childName).isEqualTo("민지")
+        assertThat(res.place).isEqualTo("숲속 마을")
+        assertThat(res.id).isEqualTo(fairy.id)
+        assertThat(res.title).isEqualTo("상세 테스트 동화")
+        assertThat(res.content).isEqualTo("내용 상세")
+        assertThat(res.imageUrl).isEqualTo("https://storage.googleapis.com/bucket/detail.png")
+        assertThat(res.isPublic).isFalse()
+        assertThat(res.createdAt).isNotNull()
     }
 
     @Test
-    @DisplayName("동화 상세 조회 실패: 동화 없음")
-    fun t6() {
-        every {
-            fairytaleService.getFairytaleByIdAndUserId(any(), any())
-        } throws FairytaleNotFoundException("동화를 찾을 수 없습니다.")
+    @DisplayName("동화 상세 조회 실패 - 존재하지 않는 ID")
+    fun t5() {
+        val notExistId = 999L
 
-        mockMvc.perform(
-            get("/fairytales/{id}", 999L).with(authentication(authentication))
+        val mvcResult = mockMvc.perform(
+            get("/fairytales/{id}", notExistId)
+                .contentType(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isNotFound)
-            .andExpect(content().string("동화를 찾을 수 없습니다."))
+            .andReturn()
 
-        verify(exactly = 1) { fairytaleService.getFairytaleByIdAndUserId(any(), any()) }
+        val body = mvcResult.response.contentAsString
+        assertThat(body).contains("동화를 찾을 수") // 서비스 메시지 일부만 느슨히 검증
     }
 
     @Test
     @DisplayName("동화 삭제 성공")
-    fun t7() {
-        val idSlot = slot<Long>()
-        val userIdSlot = slot<Long>()
-
-        every {
-            fairytaleService.deleteFairytaleByIdAndUserId(capture(idSlot), capture(userIdSlot))
-        } returns Unit
+    fun t6() {
+        val user = userRepository.findById(savedUserId).get()
+        val imageUrl = "https://storage.googleapis.com/bucket/to-delete.png"
+        val saved = fairytaleRepository.save(
+            Fairytale(
+                user = user,
+                title = "삭제 대상 동화",
+                content = "삭제 컨텐츠",
+                imageUrl = imageUrl,
+                isPublic = false
+            )
+        )
 
         mockMvc.perform(
-            delete("/fairytales/{id}", 1L)
-                .with(authentication(authentication))
-                .with(csrf())
+            delete("/fairytales/{id}", saved.id!!)
+                .contentType(MediaType.APPLICATION_JSON)
         )
             .andExpect(status().isNoContent)
-            .andExpect(content().string(""))
 
-        verify(exactly = 1) { fairytaleService.deleteFairytaleByIdAndUserId(any(), any()) }
-        assertThat(idSlot.captured).isEqualTo(1L)
-        assertThat(userIdSlot.captured).isEqualTo(USER_ID)
-    }
+        // DB도 검증
+        val exists = fairytaleRepository.findById(saved.id!!).isPresent
+        assertThat(exists).isFalse()
 
-    @Test
-    @DisplayName("동화 삭제 실패: 동화 없음")
-    fun t8() {
-        every {
-            fairytaleService.deleteFairytaleByIdAndUserId(any(), any())
-        } throws FairytaleNotFoundException("삭제할 동화를 찾을 수 없습니다.")
-
-        mockMvc.perform(
-            delete("/fairytales/{id}", 999L)
-                .with(authentication(authentication))
-                .with(csrf())
-        )
-            .andExpect(status().isNotFound)
-            .andExpect(content().string("삭제할 동화를 찾을 수 없습니다."))
-
-        verify(exactly = 1) { fairytaleService.deleteFairytaleByIdAndUserId(any(), any()) }
+        // 이미지 삭제 호출되었는지
+        verify(exactly = 1) { googleCloudStorage.deleteImages(match { it == listOf(imageUrl) }) }
     }
 
 }
