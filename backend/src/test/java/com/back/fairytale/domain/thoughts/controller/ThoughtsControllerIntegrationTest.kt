@@ -3,6 +3,7 @@ package com.back.fairytale.domain.thoughts.controller
 import com.back.BackendApplication
 import com.back.fairytale.domain.fairytale.entity.Fairytale
 import com.back.fairytale.domain.fairytale.repository.FairytaleRepository
+import com.back.fairytale.domain.like.repository.LikeRepository
 import com.back.fairytale.domain.thoughts.dto.ThoughtsRequest
 import com.back.fairytale.domain.thoughts.dto.ThoughtsUpdateRequest
 import com.back.fairytale.domain.thoughts.entity.Thoughts
@@ -61,6 +62,9 @@ class ThoughtsControllerIntegrationTest {
     @Autowired
     private lateinit var fairytaleRepository: FairytaleRepository
 
+    @Autowired
+    private lateinit var likeRepository: LikeRepository
+
     // Spring Boot Test(Spring Context)에서 MockkBean을 사용하여 필요한 의존성 주입
     @MockkBean
     private lateinit var geminiClient: GeminiClient
@@ -84,6 +88,7 @@ class ThoughtsControllerIntegrationTest {
     @BeforeEach
     fun setUp() {
         thoughtsRepository.deleteAllInBatch()
+        likeRepository.deleteAllInBatch()
         fairytaleRepository.deleteAllInBatch()
         userRepository.deleteAllInBatch()
 
